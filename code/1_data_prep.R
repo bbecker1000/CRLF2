@@ -123,6 +123,7 @@ between_year_data <- data %>%
   select(-MaxD, -WaterSalinity, -NumberofEggMasses, -ground_sub, -ground_emerg, -ground_open_water) %>% 
   mutate(mean_salinity = if_else(CoastalSite, mean_salinity, 0),
          max_salinity = if_else(CoastalSite, max_salinity, 0)) %>% 
+  select(-max_salinity, -mean_salinity) %>% # deleting salinity from between year
   ungroup()
 
 # write to CSV
