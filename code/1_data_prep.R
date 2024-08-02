@@ -29,7 +29,6 @@ location_type <- read_csv(here::here("data", "CRLF_tblLocations.csv")) %>%
 unfiltered_data <- raw_data %>% select(-ParkCode, -ProjectCode, -BTime, -TTime, -USGS_ID, -SEASON, -SvyLength, -SvyWidth, -tblEvents_Comments, 
                             -DateEntered, -EventID, -SpeciesID, -WaterDepth, -EggDepth, -Distance, -EggMassStageID, -AS_UTMSOURCE, -AS_UTMZONE, 
                             -GPS_ID, -tblEggCount_CRLF_Comments, -AttachType) %>% 
-  filter(Validation == 'TRUE') %>%
   filter(OldMass == "FALSE") %>%
   mutate(Date = strptime(Date, format = "%m/%d/%Y")) %>%
   mutate(Survey_MONTH = as.integer(format(Date, "%m"))) %>%

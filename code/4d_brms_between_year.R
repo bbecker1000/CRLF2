@@ -107,7 +107,7 @@ bprior.no.sal <- c(
   # prior(student_t(1, 0.5, 0.5), class = b, coef = syearly_rain_scaled_1),
   
   # yearly rain interactions (positive but more so for seasonal)
-  prior(student_t(1, 0.25, 0.5), coef = syearly_rain_scaled:water_regimeperennial_1),
+  prior(student_t(1, 0, 0.5), coef = syearly_rain_scaled:water_regimeperennial_1),
   prior(student_t(1, 0.5, 0.5), coef =  syearly_rain_scaled:water_regimeseasonal_1),
   
   # yearly rain interactions -- hurdle. not working and idk how to run get_prior() properly for them
@@ -117,11 +117,12 @@ bprior.no.sal <- c(
  
   # other covariates (feel free to change as you see fit)
   # prior(student_t(1, 0.5, 0.5), coef =  water_regimeseasonal), # slightly positive based on hypotheses
-  prior(student_t(1, 0.25, 0.5), coef =  water_flowlentic), # slightly positive based on hypotheses
-  prior(student_t(1, -0.25, 0.5), coef =  water_flowlotic), # slightly negtive based on hypotheses
-  prior(student_t(1, -0.25, 0.5), coef =  sinterpolated_canopy_scaled_1), # slightly negative based on hypotheses
+  prior(student_t(1, 0.5, 0.5), coef =  water_flowlentic), # slightly positive based on hypotheses
+  prior(student_t(1, -0.5, 0.5), coef =  water_flowlotic), # slightly negtive based on hypotheses
+  prior(student_t(1, -0.5, 0.5), coef =  sinterpolated_canopy_scaled_1), # slightly negative based on hypotheses
+  prior(student_t(1, 0.25, 0.5), coef =  smean_percent_sub_scaled_1), # slightly positive? based on hypotheses
   prior(student_t(1, 0, 0.5), coef =  sBRDYEAR_scaled_1 ),
-  prior(student_t(1, 0, 0.5), coef =  smean_percent_water_scaled_1),
+  prior(student_t(1, -0.25, 0.5), coef =  smean_percent_water_scaled_1),
   prior(student_t(1, 0, 0.5), coef =  sWaterTemp_scaled_1)
 )
 
@@ -133,8 +134,7 @@ mod.hurdle.no.salinity <- brm(
        s(mean_percent_water_scaled) + 
        s(interpolated_canopy_scaled) +
        s(WaterTemp_scaled) +  
-       #s(max_salinity_scaled, by = CoastalSite) + #Dropped
-       #CoastalSite + #needed?
+       s(mean_percent_sub_scaled) +
        s(yearly_rain_scaled, by =water_regime) +
        (water_flow) +
        (1 | Watershed/LocationID),
@@ -145,8 +145,8 @@ mod.hurdle.no.salinity <- brm(
   family = hurdle_negbinomial(),
   prior = bprior.no.sal,
   chains = 3, cores = 3,
-  iter = 7500, # only need about 1000 for inference (3500-2500 warmup = 1000)
-  warmup = 6500, 
+  iter = 11500, # only need about 1000 for inference (3500-2500 warmup = 1000)
+  warmup = 10500, 
   control = list(adapt_delta = 0.99)
 )
 

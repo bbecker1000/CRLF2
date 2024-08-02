@@ -46,7 +46,7 @@ scaled_between_year <- complete_btw_data %>%
 # testing correlations, removed mean_percent_emerg because it was highly correlated with percent water
 cor(scaled_between_year[, c("BRDYEAR", "mean_percent_emerg", "mean_percent_sub", 
                             "mean_percent_water", "interpolated_canopy", "yearly_rain", 
-                            "max_depth", "WaterTemp", "max_salinity")])
+                            "max_depth", "WaterTemp")])
 
 
 between_year_gamlss <- gamlss(formula = 
