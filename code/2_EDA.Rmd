@@ -1,0 +1,517 @@
+---
+title: "2_EDA"
+output: html_document
+date: "2024-03-22"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(warning = FALSE)
+```
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(tidyverse)
+setwd(here::here("code"))
+# source("1_data_prep.R")
+data <- read_csv(here::here("data", "filtered_raw_data.csv"))
+between_year_data <- read_csv(here::here("data", "between_year_data.csv"))
+complete_btw_data <- read_csv(here::here("data", "complete_btw_data.csv"))
+```
+
+# data manipulation
+
+tables that are helpful for creating many graphs
+
+```{r summary_new_eggs}
+#summary information of egg masses count
+
+#total number of egg masses is 3939
+sum(data$NumberofEggMasses, na.rm = TRUE)
+
+#maximum number of egg masses for a given survey is 25, while the mean is 0.857
+summary(data$NumberofEggMasses,na.rm = TRUE)
+```
+
+#### dataframe: "statistics"
+
+1.  number of survey
+2.  mean number of new egg masses per survey
+3.  total number of egg masses per watershed per site per year
+4.  first and last egg mass detected per year
+5.  length of breeding season
+
+```{r statistics_dataframe}
+statistics <-data|>
+  group_by(BRDYEAR,Watershed,LocationID)|>
+  summarize(survey_count = n_distinct(EventGUID),
+            mean_egg_num = (sum(NumberofEggMasses, na.rm = TRUE)/survey_count),
+            total_egg_num =sum(NumberofEggMasses, na.rm = TRUE),
+            firstEgg = min(dayOfWY), 
+            lastEgg = max(dayOfWY), 
+            breedingLength = max(dayOfWY) - min(dayOfWY))
+statistics
+```
+
+```{r}
+# ranges of each variable for summary data table
+data_mins <- data.frame(sapply(data, min, na.rm = TRUE))
+data_maxs <- data.frame(sapply(data, max, na.rm = TRUE))
+data_means <- data.frame(sapply(data, mean, na.rm = TRUE))
+count(data, LocationID)
+```
+
+# plots
+
+## pre-2010 data
+
+```{r}
+# Darren believes there is data 2004-2010 at Mori/Laguna Salada, Milagra, Big Lagoon, & Rodeo
+
+false_validation <- raw_data %>% select(Validation) %>% 
+  group_by(Validation) %>% 
+  summarise(Counts=n())
+
+
+
+pre2010_data <- unfiltered_data %>% 
+  group_by(LocationID, BRDYEAR) %>% 
+  summarize(survey_count_site_yr = n_distinct(EventGUID), .groups = "drop") %>% 
+  ungroup() %>% 
+  full_join(unfiltered_data, by = c("LocationID" = "LocationID", "BRDYEAR" = "BRDYEAR")) %>% 
+  filter(survey_count_site_yr > 1) %>% 
+  filter(BRDYEAR < 2010) %>%
+  mutate(
+    Watershed = droplevels(Watershed),
+    LocationID = droplevels(LocationID)) %>%
+  mutate(
+    LocationID = case_when(
+      LocationID == "LS02" | LocationID == "LS03" ~ "LS11",
+      TRUE ~ LocationID))
+
+pre2010_eggs <- pre2010_data %>% 
+  group_by(BRDYEAR,Watershed,LocationID) %>% 
+  summarize(survey_count = n_distinct(EventGUID),
+            mean_egg_num = (sum(NumberofEggMasses, na.rm = TRUE)/survey_count),
+            total_egg_num =sum(NumberofEggMasses, na.rm = TRUE),
+            firstEgg = min(dayOfWY), 
+            lastEgg = max(dayOfWY), 
+            breedingLength = max(dayOfWY) - min(dayOfWY))
+```
+
+## cover data
+
+#### ground vs. interpolated
+
+```{r all_site_cover_comparison}
+# plots for data comparisons across all sites
+cover_comparisons = between_year_data_for_cover_comparison
+
+ggplot(data = cover_comparisons) + 
+  geom_smooth(aes(x = BRDYEAR, y = mean_ground_sub), color = "salmon", se = FALSE) +
+  geom_smooth(aes(x = BRDYEAR, y = mean_interpolated_sub), color = "turquoise3", se = FALSE)
+
+ggplot(data = cover_comparisons) + 
+  geom_smooth(aes(x = BRDYEAR, y = mean_ground_emerg), color = "salmon", se = FALSE) +
+  geom_smooth(aes(x = BRDYEAR, y = mean_interpolated_emerg), color = "turquoise3", se = FALSE)
+
+ggplot(data = cover_comparisons) + 
+  geom_smooth(aes(x = BRDYEAR, y = mean_ground_open_water), color = "salmon", se = FALSE) +
+  geom_smooth(aes(x = BRDYEAR, y = mean_interpolated_open_water), color = "turquoise3",se = FALSE)
+
+```
+
+```{r site_cover_comparison}
+# facet wrap by site
+site_sub <- ggplot(data = cover_comparisons) + 
+  geom_smooth(aes(x = BRDYEAR, y = mean_ground_sub), color = "salmon", se = FALSE) +
+  geom_line(aes(x = BRDYEAR, y = mean_interpolated_sub), color = "turquoise3") +
+  facet_wrap(~LocationID)
+
+site_emerg <- ggplot(data = cover_comparisons) + 
+  geom_smooth(aes(x = BRDYEAR, y = mean_ground_emerg), color = "salmon", se = FALSE) +
+  geom_line(aes(x = BRDYEAR, y = mean_interpolated_emerg), color = "turquoise3", se = FALSE) +
+  facet_wrap(~LocationID)
+
+site_open <- ggplot(data = cover_comparisons) + 
+  geom_smooth(aes(x = BRDYEAR, y = mean_ground_open_water), color = "salmon", se = FALSE) +
+  geom_line(aes(x = BRDYEAR, y = mean_interpolated_open_water), color= "turquoise3", se = FALSE) +
+  facet_wrap(~LocationID)
+```
+
+```{r correlations}
+# run correlations for open water and vegetation
+correlations <- cover_comparisons %>% 
+  na.omit() %>% 
+  group_by(LocationID) %>% 
+  summarize(open_water_cor = cor(mean_ground_open_water, mean_interpolated_open_water),
+            sub_cor = cor(mean_ground_sub, mean_interpolated_sub),
+            emerg_cor = cor(mean_ground_emerg, mean_interpolated_emerg))
+
+overall_cor <- cover_comparisons %>% 
+  na.omit() %>% 
+  summarize(open_water_cor = cor(mean_ground_open_water, mean_interpolated_open_water),
+            sub_cor = cor(mean_ground_sub, mean_interpolated_sub),
+            emerg_cor = cor(mean_ground_emerg, mean_interpolated_emerg))
+
+# lm's for correlation
+open_water_model <- lm(mean_ground_open_water ~ mean_interpolated_open_water + as.factor(LocationID), data = cover_comparisons)
+summary(open_water_model)
+
+sub_veg_model <- lm(mean_ground_sub ~ mean_interpolated_sub, data = cover_comparisons)
+summary(sub_veg_model)
+
+emerg_veg_model <- lm(mean_ground_emerg ~ mean_interpolated_emerg, data = cover_comparisons)
+summary(emerg_veg_model)
+```
+
+```{r}
+# plotting on-the-ground data on X axis, interpolated on Y axis
+ggplot(data = cover_comparisons, aes(x = mean_ground_open_water, y = mean_interpolated_open_water)) + 
+  geom_smooth(se = FALSE) + 
+  facet_wrap(~LocationID)
+```
+
+#### complete cases cover
+
+```{r complete_case}
+cover_comparisons = between_year_data_for_cover_comparison
+
+# creating a "complete case" column
+cover_comparisons$complete_case <- complete.cases(cover_comparisons)
+
+# 161 complete cases 
+complete_cover_comparisons <- cover_comparisons %>% filter(complete_case == TRUE)
+
+# 24 complete sites
+complete_sites <- complete_cover_comparisons %>% 
+  group_by(LocationID) %>% 
+  count() # there are 24 complete LocationIDs (sites)
+
+## previous number of sites (before complete_case filter) = 47
+## 23 sites were lost
+previous_site_number <- between_year_data_for_cover_comparison %>% 
+  group_by_("LocationID") %>% 
+  count()
+
+# join with previous_site LocationID column to get NAs for missing sites
+complete_with_missing_sites <- previous_site_number %>% 
+  select(LocationID) %>% 
+  full_join(complete_sites)
+
+summary(complete.cases(complete_with_missing_sites)) # lose 23 sites (complete=FALSE), 24 remain
+```
+
+##### ground vs. interpolated comparisons (with ONLY complete cases)
+
+```{r}
+# submergent
+complete_submergent <- ggplot(data = complete_cover_comparisons) + 
+  geom_smooth(aes(x = BRDYEAR, y = mean_ground_sub), color = "darkolivegreen3", se = FALSE) +
+  geom_smooth(aes(x = BRDYEAR, y = mean_interpolated_sub), color = "cornflowerblue", se = FALSE)
+
+#emergent
+complete_emergent <- ggplot(data = complete_cover_comparisons) + 
+  geom_smooth(aes(x = BRDYEAR, y = mean_ground_emerg), color = "darkolivegreen3", se = FALSE) +
+  geom_smooth(aes(x = BRDYEAR, y = mean_interpolated_emerg), color = "cornflowerblue", se = FALSE)
+
+#open water
+complete_open <- ggplot(data = complete_cover_comparisons) + 
+  geom_smooth(aes(x = BRDYEAR, y = mean_ground_open_water), color = "darkolivegreen3", se = FALSE) +
+  geom_smooth(aes(x = BRDYEAR, y = mean_interpolated_open_water), color = "cornflowerblue",se = FALSE)
+```
+
+```{r}
+# facet wrap by site
+## submergent
+complete_site_sub <- ggplot(data = complete_cover_comparisons) + 
+  geom_smooth(aes(x = BRDYEAR, y = mean_ground_sub), color = "darkolivegreen3", se = FALSE) +
+  geom_line(aes(x = BRDYEAR, y = mean_interpolated_sub), color = "cornflowerblue") +
+  facet_wrap(~LocationID)
+
+## emergent
+complete_site_emerg <- ggplot(data = complete_cover_comparisons) + 
+  geom_smooth(aes(x = BRDYEAR, y = mean_ground_emerg), color = "darkolivegreen3", se = FALSE) +
+  geom_line(aes(x = BRDYEAR, y = mean_interpolated_emerg), color = "cornflowerblue", se = FALSE) +
+  facet_wrap(~LocationID)
+
+## open water
+complete_site_open <- ggplot(data = complete_cover_comparisons) + 
+  geom_smooth(aes(x = BRDYEAR, y = mean_ground_open_water), color = "darkolivegreen3", se = FALSE) +
+  geom_line(aes(x = BRDYEAR, y = mean_interpolated_open_water), color= "cornflowerblue", se = FALSE) +
+  facet_wrap(~LocationID)
+```
+
+```{r}
+# run correlations for open water and vegetation
+
+## by site
+correlations <- complete_cover_comparisons %>% 
+  na.omit() %>% 
+  group_by(LocationID) %>% 
+  summarize(open_water_cor = cor(mean_ground_open_water, mean_interpolated_open_water),
+            sub_cor = cor(mean_ground_sub, mean_interpolated_sub),
+            emerg_cor = cor(mean_ground_emerg, mean_interpolated_emerg))
+
+## overall
+overall_cor <- complete_cover_comparisons %>% 
+  na.omit() %>% 
+  summarize(open_water_cor = cor(mean_ground_open_water, mean_interpolated_open_water),
+            sub_cor = cor(mean_ground_sub, mean_interpolated_sub),
+            emerg_cor = cor(mean_ground_emerg, mean_interpolated_emerg))
+
+
+# lm's for correlation
+open_water_model <- lm(mean_ground_open_water ~ mean_interpolated_open_water + as.factor(LocationID), data = complete_cover_comparisons)
+summary(open_water_model)
+
+sub_veg_model <- lm(mean_ground_sub ~ mean_interpolated_sub, data = complete_cover_comparisons)
+summary(sub_veg_model)
+
+emerg_veg_model <- lm(mean_ground_emerg ~ mean_interpolated_emerg, data = complete_cover_comparisons)
+summary(emerg_veg_model)
+```
+
+##### canopy cover and aquatic vegetation
+
+```{r}
+canopy_emergent <- complete_btw_data %>% ggplot(aes(x=interpolated_canopy, y=mean_percent_emerg))+
+  geom_point() +
+  geom_smooth()
+canopy_emergent
+
+canopy_emergent_model <- lm(mean_percent_emerg ~ interpolated_canopy, data = complete_btw_data)
+
+summary(canopy_emergent_model)
+
+# facet by site
+complete_btw_data %>% ggplot(aes(x=interpolated_canopy, y=mean_percent_emerg))+
+  geom_point() +
+  geom_smooth() +
+  facet_wrap(~Watershed)
+
+```
+
+## eggs
+
+```{r mean_NEW_eggs}
+#I made a new "data_after2009"data set and plot the trend line using is, instead of the full "data". (since 2000-2005 all have 0 egg masses, and there are no records from 2009 to 2009)
+data_after2009 <- data|> 
+  filter(BRDYEAR>2009)
+data_after2009
+
+statistics_after2009 <- statistics |>
+  filter(BRDYEAR>2009)
+statistics_after2009
+```
+
+```{r mean_NEW_eggs}
+#plots of mean number of NEW egg masses per survey
+#This code has been updated. If anyone can help adding label info (the mean value) besides each point that would be great. 
+ggplot(data = data_after2009,mapping = aes(x = BRDYEAR, y = NumberofEggMasses))+ 
+  geom_jitter(alpha=0.1,width = 0.1)+
+  stat_summary(fun = "mean",geom = "point",color = "orange", size= 2)+
+  geom_smooth(method = "lm", color = "blue",se = FALSE)+
+  labs(x = "Year", y = "mean number of new egg masses per survey")+
+  scale_y_continuous(limits = c(0,5))
+
+### above plot facet by watershed
+ggplot(data = data_after2009,mapping = aes(x = BRDYEAR, y = NumberofEggMasses))+ 
+  geom_jitter(alpha=0.1,width = 0.1)+
+  stat_summary(fun = "mean",geom = "point",color = "orange", size= 2)+
+  geom_smooth(method = "lm", color = "blue",se = FALSE)+
+  facet_wrap(~Watershed)+ scale_y_continuous(limits = c(0,5))
+
+### above plot facet by site
+ggplot(data = data_after2009,mapping = aes(x = BRDYEAR, y = NumberofEggMasses))+ 
+  geom_jitter(alpha=0.1,width = 0.1)+
+  stat_summary(fun = "mean",geom = "point",color = "orange", size= 2)+
+  geom_smooth(method = "lm", color = "blue",se = FALSE)+
+  facet_wrap(~LocationID)+ scale_y_continuous(limits = c(0,5))
+
+```
+
+```{r mean_NEW_eggs}
+#plot of total egg masses over time per Watershed
+ggplot(data = data_after2009,mapping = aes(x = BRDYEAR, y = NumberofEggMasses))+ 
+  stat_summary(fun = "sum",geom = "point", color = "black", size= 2) + facet_wrap(~Watershed)+
+  labs(x = "Year", y = "total new egg masses")
+
+#plot of total egg masses over time per site
+ggplot(data = data_after2009)+ 
+  stat_summary(mapping = aes(x = BRDYEAR, y = NumberofEggMasses),
+               fun = "sum",geom = "point",color = "black", size= 2) + facet_wrap(~LocationID)+
+  labs(x = "Year", y = "total new egg masses")
+
+## above with size of point = survey_count (per site)
+ggplot(data = statistics, mapping = aes(x = BRDYEAR, y = total_egg_num)) +
+  geom_point(aes(alpha = survey_count)) + facet_wrap(~LocationID) +
+  labs(x = "Year", y = "total new egg masses")
+
+# plot of presence or absence of eggs for each site/year
+between_year_data_plot <- between_year_data %>% 
+  mutate(
+    boolean_eggs = (num_egg_masses != 0)
+  )
+ggplot(between_year_data_plot, aes(x = BRDYEAR, y = LocationID, fill = boolean_eggs)) + geom_tile(color = "black") + coord_fixed() + scale_fill_manual(values = c("lavender", "purple4")) + theme_classic()
+```
+
+#### breeding season
+
+```{r plots for within year data}
+
+ggplot(data = within_year_data, aes(x = dayOfWY, y = NumberofEggMasses)) + geom_point()
+
+```
+
+```{r breeding_length}
+# timing (days since october 1) of egg laying by year and watershed
+
+eggTiming<-data|>
+  filter(NumberofEggMasses > 0)|>
+  group_by(Watershed, LocationID, BRDYEAR)|>
+  summarize(firstEgg = min(dayOfWY), 
+            lastEgg = max(dayOfWY), 
+            breedingLength = max(dayOfWY) - min(dayOfWY))
+eggTiming
+
+
+## plot timing v.1
+ggplot(data = eggTiming, aes(x = BRDYEAR, y = breedingLength, color = Watershed)) + geom_line()
+
+## improved plot timing v.2
+ggplot(data = eggTiming, aes(x = BRDYEAR, y = breedingLength, color = Watershed)) + geom_point() + geom_smooth(method="loess", se=F)
+
+#above plot but facet by watershed
+ggplot(data = eggTiming, aes(x = BRDYEAR, y = breedingLength,color = Watershed)) + geom_point() + geom_smooth(method="loess", se=F)+ facet_wrap(~Watershed)
+
+ggplot(data = eggTiming, aes(x = BRDYEAR, y = breedingLength,color = Watershed)) + geom_point() + geom_smooth(method="loess", se=F)+ facet_wrap(~LocationID)
+
+# Which one of the 3 rainfall dataset should we use for each of these sites?
+## TODO: correlate breeding season length with rainfall
+```
+
+```{r}
+eggTiming|>
+  group_by(BRDYEAR)
+
+# Calculate the full breeding length of all sites for a given year, to be correlated with rainfall data.
+eggTiming_new <- data %>%
+  filter(NumberofEggMasses > 0) %>%
+  group_by(BRDYEAR) %>%
+  summarize(firstEgg = min(dayOfWY), 
+            lastEgg = max(dayOfWY), 
+            breedingLength = max(dayOfWY) - min(dayOfWY))
+eggTiming_new$Water_Year <- eggTiming_new$BRDYEAR
+ggplot(data = eggTiming_new, aes(x = Water_Year, y = breedingLength,)) + geom_point() + geom_smooth(method="loess", se=F)
+```
+
+#### sites
+
+```{r num_sites}
+#table showing number of different sites for all watersheds
+number_of_sites_within_watershed <- data %>% 
+  group_by(Watershed) %>% 
+  summarize(distinct_count = n_distinct(LocationID))
+number_of_sites_within_watershed
+view(number_of_sites_within_watershed)
+
+as.data.frame(number_of_sites_within_watershed)
+sum(number_of_sites_within_watershed$distinct_count)
+
+#plot of the above table.
+ggplot(number_of_sites_within_watershed,aes(x=Watershed,y=distinct_count))+
+  geom_point()
+```
+
+#### survey counts
+
+```{r survey_counts}
+# table: number surveys per year (not relevant)
+survey_count_by_year <- data|>
+  group_by(BRDYEAR)|>
+  summarize(survey_count=n_distinct(EventGUID))
+survey_count_by_year
+
+# plot: survey count per year across all watersheds/sites
+ggplot(data = survey_count_by_year,aes(x=BRDYEAR,y=survey_count))+geom_point()+geom_smooth()+ scale_y_continuous(limits = c(0,200))
+
+# table: number of surveys at each watershed per year
+abundance_counts <- data %>%
+  group_by(Watershed, BRDYEAR) %>%
+  summarize(survey_count = n_distinct(EventGUID))
+abundance_counts
+```
+
+```{r survey_counts}
+# above table but containing only after year 2009. There is a few survey before that and all in one single year in Watershed: redwood creek.
+abundance_counts_after2009 <- data_after2009 %>%
+  group_by(Watershed, BRDYEAR) %>%
+  summarize(survey_count = n_distinct(EventGUID))
+abundance_counts_after2009
+
+# plot: number of surveys per year per Watershed after 2009.
+survey_graph_after2009 <- ggplot(abundance_counts_after2009,aes(x=BRDYEAR,y=survey_count,colour=Watershed))+geom_point()+ facet_wrap(~Watershed)
+survey_graph_after2009
+
+```
+
+```{r survey_counts}
+#heatmap of survey count per year by watershed
+ggplot(abundance_counts, aes(x = BRDYEAR, y = Watershed, fill = survey_count)) +
+  geom_tile() +
+  scale_fill_gradient(low = "#CBEB81", high = "#0E2D8A") +  # Adjust color gradient
+  labs(x = "Breeding Year", y = "Watershed", title = "Abundance Heatmap") +  # Add axis labels and title
+  theme_minimal()
+
+#above graph containing only year after 2009.
+ggplot(abundance_counts_after2009, aes(x = BRDYEAR, y = Watershed, fill = survey_count)) +
+  geom_tile() +
+  scale_fill_gradient(low = "#CBEB81", high = "#0E2D8A") +  # Adjust color gradient
+  labs(x = "Breeding Year", y = "Watershed", title = "Abundance Heatmap") +  # Add axis labels and title
+  theme_minimal()
+
+```
+
+```{r survey_count_vs_new_egg}
+#number of survey count for each number of new egg masses of all watersheds by year
+ggplot(data = statistics, mapping = aes(x = total_egg_num)) + 
+  geom_freqpoly(mapping = aes(colour = BRDYEAR))+
+  scale_x_continuous(limits = c(0, 170))
+```
+
+##### observers
+
+```{r obsv_total}
+# investigating number of observers (obsv_total)
+## histogram of obsv_total
+ggplot(data = data, aes(x = obsv_total)) + geom_histogram()
+```
+
+## environmental covariates
+
+```{r}
+#counting the number of non-NA values for the environmental variables we are looking at
+## SALINITY: There are 727 non-NA salinity data. We can adjust based on what Darren replied in email. 
+length(na.omit(data$WaterSalinity))
+
+## OPEN WATER： There are 3030 non-NA open water data
+length(na.omit(data$PercentOpenWater))
+
+## DEPTH (AVG & MAX): Darren said they are not that relevant; if we use we should use max depth (the one with more data)
+
+#there are 2020 non-zero average depth data
+length(na.omit(data$AvgD))
+
+#there are 3099 non-zero maximum depth data
+length(na.omit(data$MaxD))
+
+#correlation between average depth and max depth is significantly positive 
+regression_depth=lm(AvgD~MaxD,data=new_egg)
+summary(regression_depth)
+
+library(ggpubr)
+ggscatter(new_egg, x = "MaxD", y = "AvgD",
+          add = "reg.line",cor.coef=TRUE,coor.method=" ")
+```
