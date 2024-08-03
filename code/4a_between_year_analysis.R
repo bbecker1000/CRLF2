@@ -49,6 +49,7 @@ cor(scaled_between_year[, c("BRDYEAR", "mean_percent_emerg", "mean_percent_sub",
                             "max_depth", "WaterTemp")])
 
 
+#removing the max_salinity:
 between_year_gamlss <- gamlss(formula = 
                                 num_egg_masses ~ pb(BRDYEAR_scaled) + 
                                 pb(mean_percent_sub_scaled) +
