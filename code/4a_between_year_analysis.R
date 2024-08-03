@@ -56,7 +56,7 @@ between_year_gamlss <- gamlss(formula =
                                 pb(interpolated_canopy_scaled) +
                                 max_depth_scaled +
                                 pb(WaterTemp_scaled) +
-                                max_salinity_scaled:as.factor(CoastalSite) +
+                                #max_salinity_scaled:as.factor(CoastalSite) +
                                 pb(yearly_rain_scaled)+
                                 water_regime + # added new covariate & interaction
                                 yearly_rain_scaled:as.factor(water_regime)+
