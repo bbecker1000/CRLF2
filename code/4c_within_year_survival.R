@@ -73,8 +73,8 @@ plot(within_year_gam, pages = 1, all.terms = TRUE, rug = TRUE)
 #### plotting using newdata ####
 #Mark update: I tried to make all plots more smooth, do they look better/ correct?
 
-# Create a data frame with all predictors
-# newdata_AirTemp <- scaled_within_year %>% 
+#Create a data frame with all predictors
+# newdata_AirTemp <- scaled_within_year %>%
 #   mutate(
 #   max_depth_scaled = mean(scaled_within_year$max_depth_scaled, na.rm = TRUE),
 #   AirTemp_scaled = seq(min(scaled_within_year$AirTemp_scaled, na.rm = TRUE), max(scaled_within_year$AirTemp_scaled, na.rm = TRUE), length.out = 1000),
@@ -134,6 +134,8 @@ Air_temp_plot <- ggplot(data = plot_df_AirTemp, aes(x = AirTemp_scaled, y = fv))
 Air_temp_plot
 
 # Create a sequence for rain_to_date_scaled
+# I just re-run our gam model, and from the summary rain_to_date is no longer significant?
+# Keeping these codes for reference
 newdata_rain_to_date <- with(scaled_within_year, 
                              data.frame(
                                max_depth_scaled = mean(max_depth_scaled, na.rm = TRUE),
@@ -169,6 +171,46 @@ rain_plot <- ggplot(data = plot_df_rain_to_date, aes(x = rain_to_date_scaled, y 
   theme_classic() +
   theme(text = element_text(size = 12))
 rain_plot
+
+
+# Create a sequence for WaterTemp_scaled
+newdata_WaterTemp <- with(scaled_within_year, 
+                          data.frame(
+                            max_depth_scaled = mean(max_depth_scaled, na.rm = TRUE),
+                            AirTemp_scaled = mean(AirTemp_scaled, na.rm = TRUE),
+                            WaterTemp_scaled = seq(min(WaterTemp_scaled, na.rm = TRUE), max(WaterTemp_scaled, na.rm = TRUE), length.out = 1000),
+                            BRDYEAR_scaled = mean(BRDYEAR_scaled, na.rm = TRUE),
+                            rain_to_date_scaled = mean(rain_to_date_scaled, na.rm = TRUE),
+                            water_flow = factor(levels(water_flow)[1], levels = levels(water_flow)),
+                            water_regime = factor(levels(water_regime)[1], levels = levels(water_regime)),
+                            Watershed = factor(levels(Watershed)[1], levels = levels(Watershed)),
+                            LocationID = factor(levels(LocationID)[1], levels = levels(LocationID))
+                          )
+)
+
+# Generate predictions
+predictions_WaterTemp <- predict(within_year_gam, newdata = newdata_WaterTemp, type = "response", se.fit = TRUE)
+
+# Create a new dataframe for plotting
+plot_df_WaterTemp <- data.frame(
+  WaterTemp_scaled = newdata_WaterTemp$WaterTemp_scaled,
+  fv = predictions_WaterTemp$fit,
+  se = predictions_WaterTemp$se.fit,
+  lower = predictions_WaterTemp$fit - (1.96 * predictions_WaterTemp$se.fit),
+  upper = predictions_WaterTemp$fit + (1.96 * predictions_WaterTemp$se.fit)
+)
+
+# Plot
+WaterTemp_plot <- ggplot(data = plot_df_WaterTemp, aes(x = WaterTemp_scaled, y = fv)) + 
+  geom_ribbon(aes(ymin = lower, ymax = upper), fill = "gray", alpha = 0.2) +
+  geom_line(color = "blue", size = 1) +
+  geom_point(data = scaled_within_year, aes(x = WaterTemp_scaled, y = first_breeding), color = "darkblue", alpha = 0.5) +
+  labs(x = "Water Temperature (scaled)", y = "Predicted First Breeding") +
+  theme_classic() +
+  theme(text = element_text(size = 12))
+WaterTemp_plot
+
+
 
 # Create a sequence for BRDYEAR_scaled
 newdata_BRDYEAR <- with(scaled_within_year, 
@@ -312,10 +354,7 @@ ggplot(data = plot_df_Watershed, aes(x = Watershed, y = fv)) +
   theme(text = element_text(size = 12))
 
 
-plot_grid(Air_temp_plot,rain_plot, BRD_plot,max_depth_plot,nrow =2)
-
-
-
+plot_grid(Air_temp_plot,WaterTemp_plot, BRD_plot,max_depth_plot,nrow =2)
 
 
 #Below codes just for reference.
