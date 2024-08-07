@@ -17,8 +17,7 @@ emergent_plot <- between_year_data %>%
   geom_point() +
   geom_smooth(se=FALSE) +
   xlab("Emergent Vegetation (%)") +
-  ylab(NULL) +
-  ylim(0,150)
+  ylab(NULL)
 
 # emergent vs. time
 emergent_BRD_plot <- between_year_data %>% 
@@ -34,7 +33,7 @@ submergent_plot <- between_year_data %>%
   geom_smooth(se=FALSE) +
   xlab("Submergent Vegetation (%)")  +
   ylab(NULL) +
-  ylim(0,150)
+  ylim(c(0,300))
 
 ## submerg vs. time
 subemergent_BRD_plot <- between_year_data %>% 
@@ -49,8 +48,7 @@ open_water_plot <- between_year_data %>%
   geom_point() +
   geom_smooth(se=FALSE) +
   xlab("Open Water (%)") +
-  ylab(NULL) +
-  ylim(0,150)
+  ylab(NULL)
 
 ## open water vs. time
 open_water_BRD_plot <- between_year_data %>% 
@@ -65,8 +63,7 @@ canopy_plot <- between_year_data %>%
   geom_point() +
   geom_smooth(se=FALSE) +
   xlab("Canopy (%)") +
-  ylab(NULL) +
-  ylim(0,150)
+  ylab(NULL)
 
 ## canopy vs. time
 canopy_BRD_plot <- between_year_data %>% 
@@ -81,8 +78,7 @@ rain_plot <- between_year_data %>%
   geom_point() +
   geom_smooth(se=FALSE) +
   xlab("Rainfall") +
-  ylab(NULL) +
-  ylim(0,150)
+  ylab(NULL)
 
 ## yearly rain vs. time
 rain_BRD_plot <- between_year_data %>% 
@@ -97,8 +93,7 @@ mean_max_depth_plot <- between_year_data %>%
   geom_point() +
   geom_smooth(se=FALSE) +
   xlab("Mean Max Depth") +
-  ylab(NULL) +
-  ylim(0,150)
+  ylab(NULL)
 
 ## mean_max_depth vs. time
 mean_max_depth_BRD_plot <- between_year_data %>% 
@@ -113,8 +108,7 @@ max_depth_plot <- between_year_data %>%
   geom_point() +
   geom_smooth(se=FALSE) +
   xlab("Max Depth") +
-  ylab(NULL) +
-  ylim(0,150)
+  ylab(NULL)
 
 ## max_depth vs. time
 max_depth_BRD_plot <- between_year_data %>% 
@@ -129,8 +123,7 @@ AirTemp_plot <- between_year_data %>%
   geom_point() +
   geom_smooth(se=FALSE) +
   xlab("Air Temperature") +
-  ylab(NULL) +
-  ylim(0,150)
+  ylab(NULL)
 
 ## AirTemp vs. time
 AirTemp_BRD_plot <- between_year_data %>% 
@@ -145,8 +138,7 @@ WaterTemp_plot <- between_year_data %>%
   geom_point() +
   geom_smooth(se=FALSE) +
   xlab("Water Temperature") +
-  ylab(NULL) +
-  ylim(0,150)
+  ylab(NULL)
 
 ## WaterTemp vs. time
 WaterTemp_BRD_plot <- between_year_data %>% 
@@ -197,11 +189,13 @@ egg_BRD_plot <- between_year_data %>%
   geom_point() +
   geom_smooth(se=FALSE) +
   xlab("Year") +
-  ylab(NULL) +
-  ylim(0,150)
+  ylab(NULL) 
 
 
 #### combined output with egg masses####
-# saved in Ouput folder
-plot_grid(emergent_plot, submergent_plot, open_water_plot, canopy_plot, rain_plot, mean_max_depth_plot, max_depth_plot, AirTemp_plot, WaterTemp_plot, mean_salinity_plot, max_salinity_plot, egg_BRD_plot, nrow=4)
+# # saved in Ouput folder
+# plot_grid(emergent_plot, submergent_plot, open_water_plot, canopy_plot, rain_plot, mean_max_depth_plot, max_depth_plot, AirTemp_plot, WaterTemp_plot, mean_salinity_plot, max_salinity_plot, egg_BRD_plot, nrow=4)
 
+
+# without salinity or depth
+plot_grid(emergent_plot, submergent_plot, open_water_plot, canopy_plot, rain_plot, AirTemp_plot, WaterTemp_plot, egg_BRD_plot, nrow=4)
