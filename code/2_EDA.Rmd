@@ -89,8 +89,13 @@ pre2010_data <- unfiltered_data %>%
   mutate(
     LocationID = case_when(
       LocationID == "LS02" | LocationID == "LS03" ~ "LS11",
-      TRUE ~ LocationID))
-
+      TRUE ~ LocationID)) %>% 
+  mutate(LocationID = case_when( # fix lowercase LocationIDs (ex: rc01 to RC01)
+    LocationID == "rc01" ~ "RC01",
+    LocationID == "rc02" ~ "RC02",
+    LocationID == "rc03" ~ "RC03",
+    TRUE ~ LocationID #keeps other values unchanged
+  ))
 pre2010_eggs <- pre2010_data %>% 
   group_by(BRDYEAR,Watershed,LocationID) %>% 
   summarize(survey_count = n_distinct(EventGUID),
@@ -99,16 +104,6 @@ pre2010_eggs <- pre2010_data %>%
             firstEgg = min(dayOfWY), 
             lastEgg = max(dayOfWY), 
             breedingLength = max(dayOfWY) - min(dayOfWY))
-
-# noticed issue with lowercase LocationIDs (ex: rc01 and RC01 present)
-
-pre2010_data %>% 
-  mutate(LocationID = case_when( # fix lowercase LocationIDs (ex: rc01 to RC01)
-    LocationID == "rc01" ~ "RC01",
-    LocationID == "rc02" ~ "RC02",
-    LocationID == "rc03" ~ "RC03",
-    TRUE ~ LocationID #keeps other values unchanged
-  ))
 ```
 
 ## cover data
