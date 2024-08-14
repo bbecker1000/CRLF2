@@ -88,11 +88,14 @@ data <- unfiltered_data %>%
   mutate(
     Watershed = droplevels(Watershed),
     LocationID = droplevels(LocationID)
-  )
-
-# codes LS02 and LS03 as LS11
-data <- data %>%
-  mutate(
+  ) %>% 
+  mutate(LocationID = case_when( # fix lowercase LocationIDs (ex: rc01 to RC01)
+    LocationID == "rc01" ~ "RC01",
+    LocationID == "rc02" ~ "RC02",
+    LocationID == "rc03" ~ "RC03",
+    TRUE ~ LocationID #keeps other values unchanged
+  )) %>%
+  mutate( # codes LS02 and LS03 as LS11
     LocationID = case_when(
       LocationID == "LS02" | LocationID == "LS03" ~ "LS11",
       TRUE ~ LocationID
@@ -181,3 +184,4 @@ onset_of_breeding <- cbind(temp_daily_rain_table, rain_to_date_col) %>% select(-
 
 # write to CSV
 write_csv(onset_of_breeding, here::here("data", "onset_of_breeding.csv"))
+
