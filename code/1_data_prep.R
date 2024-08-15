@@ -95,6 +95,10 @@ data <- unfiltered_data %>%
     LocationID == "rc03" ~ "RC03",
     TRUE ~ LocationID #keeps other values unchanged
   )) %>%
+  mutate(Watershed = case_when(
+    Watershed == "Redwood creek" ~ "Redwood Creek",
+    TRUE ~ Watershed
+  )) %>% 
   mutate( # codes LS02 and LS03 as LS11
     LocationID = case_when(
       LocationID == "LS02" | LocationID == "LS03" ~ "LS11",
