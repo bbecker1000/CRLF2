@@ -74,7 +74,7 @@ unfiltered_data <- raw_data %>% select(-ParkCode, -ProjectCode, -BTime, -TTime, 
 
 
 # filter to only include [commented OUT: the 7 watersheds that Darren said had the most data] and only sites that had at least 2 surveys in a given year
-# and only after 2009
+# [commented OUT: and only after 2009]
 data <- unfiltered_data %>% 
   group_by(LocationID, BRDYEAR) %>% 
   summarize(survey_count_site_yr = n_distinct(EventGUID), .groups = "drop") %>% 

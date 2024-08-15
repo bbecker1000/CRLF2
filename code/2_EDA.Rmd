@@ -75,7 +75,7 @@ false_validation <- raw_data %>% select(Validation) %>%
   group_by(Validation) %>% 
   summarise(Counts=n())
 
-
+# copied the filtering process used to create "data" from 1_data_prep. ADDED filter <2010
 pre2010_data <- unfiltered_data %>% 
   group_by(LocationID, BRDYEAR) %>% 
   summarize(survey_count_site_yr = n_distinct(EventGUID), .groups = "drop") %>% 
@@ -96,6 +96,37 @@ pre2010_data <- unfiltered_data %>%
     LocationID == "rc03" ~ "RC03",
     TRUE ~ LocationID #keeps other values unchanged
   ))
+
+# between year pre-2010 data
+btw_pre2010_data <- pre2010_data %>% 
+  select(LocationID, BRDYEAR, Watershed, NumberofEggMasses, AirTemp, WaterTemp, MaxD, WaterSalinity, CoastalSite, yearly_rain, ground_sub, ground_emerg, ground_open_water, interpolated_canopy, water_flow, water_regime) %>% 
+  group_by(LocationID, BRDYEAR) %>% 
+  summarize(
+    mean_max_depth = ifelse(all(is.na(MaxD)), NA, mean(MaxD, na.rm = TRUE)),
+    max_depth = ifelse(all(is.na(MaxD)), NA, max(MaxD, na.rm = TRUE)),
+    mean_salinity = ifelse(all(is.na(WaterSalinity)), NA, mean(WaterSalinity, na.rm = TRUE)),
+    max_salinity = ifelse(all(is.na(WaterSalinity)), NA, max(WaterSalinity, na.rm = TRUE)),
+    AirTemp = ifelse(all(is.na(AirTemp)), NA, mean(AirTemp, na.rm = TRUE)),
+    WaterTemp = ifelse(all(is.na(WaterTemp)), NA, mean(WaterTemp, na.rm = TRUE)),
+    num_egg_masses = sum(NumberofEggMasses, na.rm = TRUE), 
+    mean_percent_sub = ifelse(all(is.na(ground_sub)), NA, mean(ground_sub, na.rm = TRUE)),
+    mean_percent_emerg = ifelse(all(is.na(ground_emerg)), NA, mean(ground_emerg, na.rm = TRUE)),
+    mean_percent_water = ifelse(all(is.na(ground_open_water)), NA, mean(ground_open_water, na.rm = TRUE)),
+    across(everything(), ~first(.))) %>% 
+  select(-MaxD, -WaterSalinity, -NumberofEggMasses, -ground_sub, -ground_emerg, -ground_open_water) %>% 
+  mutate(mean_salinity = if_else(CoastalSite, mean_salinity, 0),
+         max_salinity = if_else(CoastalSite, max_salinity, 0)) %>% 
+  select(-max_salinity, -mean_salinity) %>% # deleting salinity from between year
+  ungroup()
+
+
+# creating a "complete case" column
+btw_pre2010_data$complete_case <- complete.cases(btw_pre2010_data)
+complete_btw_pre2010_data <- btw_pre2010_data %>% filter(complete_case == TRUE)
+
+
+
+
 pre2010_eggs <- pre2010_data %>% 
   group_by(BRDYEAR,Watershed,LocationID) %>% 
   summarize(survey_count = n_distinct(EventGUID),
