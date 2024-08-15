@@ -20,6 +20,7 @@ setwd(here::here("code"))
 data <- read_csv(here::here("data", "filtered_raw_data.csv"))
 between_year_data <- read_csv(here::here("data", "between_year_data.csv"))
 complete_btw_data <- read_csv(here::here("data", "complete_btw_data.csv"))
+onset_of_breeding_surv <- read_csv(here::here("data", "onset_of_breeding.csv"))
 ```
 
 # data manipulation
@@ -130,6 +131,14 @@ pre2010_eggs <- pre2010_data %>%
   summarize(survey_count = n_distinct(EventGUID),
             total_egg_num =sum(NumberofEggMasses, na.rm = TRUE),
             firstEgg = min(dayOfWY))
+
+# onset of breeding pre2010
+onset_pre2010 <- onset_of_breeding %>% 
+  filter(BRDYEAR < 2010)
+
+# creating a "complete case" column
+onset_pre2010$complete_case <- complete.cases(onset_pre2010)
+complete_onset_pre2010 <- onset_pre2010 %>% filter(complete_case == TRUE)
 ```
 
 ```{r pre2010_plots}
