@@ -108,7 +108,7 @@ data <- unfiltered_data %>%
 
 write_csv(data, here::here("data", "filtered_raw_data.csv"))
 
-### ~~~ *** BETWEEN YEAR DATA *** ~~~ ###
+#### ~~~ *** BETWEEN YEAR DATA *** ~~~ ####
 
 between_year_data <- data %>% 
   select(LocationID, BRDYEAR, Watershed, NumberofEggMasses, AirTemp, WaterTemp, MaxD, WaterSalinity, CoastalSite, yearly_rain, 
@@ -162,7 +162,7 @@ between_year_data_for_cover_comparison <- data %>%
 
 
 
-### ~~~ *** WITHIN YEAR DATA *** ~~~ ###
+#### ~~~ *** WITHIN YEAR DATA *** ~~~ ####
 
 temp_daily_rain_table <- left_join(data, rainfall_daily, by = c("BRDYEAR" = "Water_Year")) %>%
   mutate(across(starts_with("day_"), as.numeric))

@@ -68,7 +68,7 @@ count(data, LocationID)
 
 ## pre-2010 data
 
-```{r}
+```{r pre2010}
 # Darren believes there is data 2004-2010 at Mori/Laguna Salada, Milagra, Big Lagoon, & Rodeo
 
 false_validation <- raw_data %>% select(Validation) %>% 
@@ -125,16 +125,40 @@ btw_pre2010_data$complete_case <- complete.cases(btw_pre2010_data)
 complete_btw_pre2010_data <- btw_pre2010_data %>% filter(complete_case == TRUE)
 
 
-
-
 pre2010_eggs <- pre2010_data %>% 
   group_by(BRDYEAR,Watershed,LocationID) %>% 
   summarize(survey_count = n_distinct(EventGUID),
-            mean_egg_num = (sum(NumberofEggMasses, na.rm = TRUE)/survey_count),
             total_egg_num =sum(NumberofEggMasses, na.rm = TRUE),
-            firstEgg = min(dayOfWY), 
-            lastEgg = max(dayOfWY), 
-            breedingLength = max(dayOfWY) - min(dayOfWY))
+            firstEgg = min(dayOfWY))
+```
+
+```{r pre2010_plots}
+# number eggs vs. year (by Location)
+## only pre2010 data
+ggplot(btw_pre2010_data, aes(BRDYEAR, num_egg_masses)) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(.~LocationID)
+
+## all data
+ggplot(between_year_data, aes(BRDYEAR, num_egg_masses)) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(.~LocationID)
+
+# number eggs vs. year (by Watershed)
+## only pre2010 data
+ggplot(btw_pre2010_data, aes(BRDYEAR, num_egg_masses)) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(.~Watershed)
+
+## all data
+ggplot(between_year_data, aes(BRDYEAR, num_egg_masses)) +
+  geom_point() +
+  geom_line() +
+  facet_wrap(.~Watershed)
+
 ```
 
 ## cover data
