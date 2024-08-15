@@ -22,7 +22,8 @@ cover_data <- cover_data %>%
 cover_data_first_and_last <- cover_data %>% 
   filter(first_date | last_date)
 
-# visualization purpose: open water and veg. proportion of the 5 site with continuous data over time.: LS01, RC07, RC10, RL02,TV02
+##### visualization purpose #### 
+# open water and veg. proportion of the 5 site with continuous data over time.: LS01, RC07, RC10, RL02,TV02
 ## LS01 
 cover_data_LS01 <- cover_data |>
   filter(LocationID == "LS01")
@@ -96,7 +97,7 @@ cover_data$year_numeric <- as.numeric(format(cover_data$GoogleEarthPhotoDate, "%
 # summary(lm(OpenWater_percent~year_numeric, data = cover_data_RL02))
 # plot(lm(OpenWater_percent~year_numeric, data = cover_data_RL02))
 
-### ~~~ *** LINEAR INTERPOLATION (all sites) *** ~~~ ###
+#### ~~~ *** LINEAR INTERPOLATION (all sites) *** ~~~ ####
 # 1.INITIAL MANUAL CODE (see below for automated process)
 KC01x <- c(0, 12)     
 KC01y <- c(50, 35)   
@@ -194,7 +195,7 @@ approx_table <- start_cover %>%
  ## goal: table with site, year, percent open water
 
 
-### ~ WORKING METHOD FOR INTERPOLATIONS ~ ##
+#### ~ WORKING METHOD FOR INTERPOLATIONS ~ ####
 ## BB try using expand.grid
 # create all combinations of year and locationID
 d1 <- expand.grid(
@@ -217,7 +218,7 @@ d4OW <- d3OW %>%
   group_by(LocationID) %>%
   fill(OpenWater_percent, .direction = "downup") %>%                         #fill in leading and trailing NAs
   ungroup() %>%
-  filter(year_numeric > 2009) %>%                                                 #remove pre 2010 data
+  # filter(year_numeric > 2009) %>%                                                 #remove pre 2010 data
   rename(interpolated_openwater=OpenWater_percent)
 
 #check data
@@ -242,7 +243,7 @@ d4EV <- d3EV %>%
   group_by(LocationID) %>% 
   fill(EmergentVegetation_percent, .direction="downup") %>% 
   ungroup() %>% 
-  filter(year_numeric > 2009) %>% 
+  # filter(year_numeric > 2009) %>% 
   rename(interpolated_emerg = EmergentVegetation_percent)
 
 # check data
@@ -267,7 +268,7 @@ d4SV <- d3SV %>%
   group_by(LocationID) %>% 
   fill(SubmergentVegetation_percent, .direction = 'downup') %>% 
   ungroup() %>% 
-  filter(year_numeric >2009) %>% 
+  # filter(year_numeric >2009) %>% 
   rename(interpolated_sub = SubmergentVegetation_percent)
 
 # check data
@@ -301,7 +302,7 @@ d4CC <- d3CC %>%
   group_by(LocationID) %>% 
   fill(TreeCover_percent, .direction='downup') %>% 
   ungroup() %>% 
-  filter(year_numeric > 2009) %>% 
+  # filter(year_numeric > 2009) %>% 
   rename(interpolated_canopy = TreeCover_percent)
 
 # check data
