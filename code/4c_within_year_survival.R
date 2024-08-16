@@ -17,12 +17,8 @@ setwd(here::here("code"))
 #rename file
 onset_of_breeding_surv <- read_csv(here::here("data", "onset_of_breeding.csv"))
 
-# creating a "complete case" column
-onset_of_breeding_surv$complete_case <- complete.cases(onset_of_breeding_surv)
-complete_onset <- onset_of_breeding_surv %>% filter(complete_case == TRUE)
-
 # scaling covariates
-scaled_within_year <- complete_onset %>% 
+scaled_within_year <- onset_of_breeding_surv %>% 
   mutate(
     BRDYEAR_scaled = as.vector(scale(BRDYEAR)),
     yearly_rain_scaled = as.vector(scale(yearly_rain)),
@@ -35,7 +31,11 @@ scaled_within_year <- complete_onset %>%
     Watershed = as.factor(Watershed),
     LocationID = as.factor(LocationID)
   ) %>% 
-  select(-MaxD, -MaxD_yearly, -MaxD_proportion, -NumberofEggMasses, complete_case)
+  select(-MaxD, -MaxD_yearly, -MaxD_proportion, -NumberofEggMasses)
+
+# creating a "complete case" column
+scaled_within_year$complete_case <- complete.cases(scaled_within_year)
+complete_onset <- scaled_within_year %>% filter(complete_case == TRUE) %>% select(-complete_case)
 
 #### *** GAM MODEL *** ####
 #Generative additive model: first look at onset of breeding with fixed variables
