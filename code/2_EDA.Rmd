@@ -142,7 +142,7 @@ complete_onset_pre2010 <- onset_pre2010 %>% filter(complete_case == TRUE)
 ```
 
 ```{r pre2010_plots}
-# number eggs vs. year (by Location)
+# LOCATIONID: number eggs vs. year
 ## only pre2010 data
 ggplot(btw_pre2010_data, aes(BRDYEAR, num_egg_masses)) +
   geom_point() +
@@ -154,7 +154,7 @@ ggplot(btw_pre2010_data, aes(x=BRDYEAR, y=num_egg_masses, color=LocationID)) +
   geom_smooth(se=FALSE) +
   xlab("Year")
 
-## all data
+## all years
 ggplot(between_year_data, aes(BRDYEAR, num_egg_masses)) +
   geom_point() +
   geom_line() +
@@ -165,7 +165,7 @@ ggplot(between_year_data, aes(x=BRDYEAR, y=num_egg_masses, color=LocationID)) +
   geom_smooth(se=FALSE) +
   xlab("Year")
 
-# number eggs vs. year (by Watershed)
+# WATERSHED: number eggs vs. year
 ## only pre2010 data
 ggplot(btw_pre2010_data, aes(BRDYEAR, num_egg_masses)) +
   geom_point() +

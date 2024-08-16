@@ -17,9 +17,9 @@ emergent_plot <- between_year_data %>%
   geom_point() +
   geom_smooth(se=FALSE) +
   xlab("Emergent Vegetation (%)") +
-  ylab(NULL) + 
-  theme(legend.position="none")
-# emergent vs. time
+  ylab(NULL)
+
+  # emergent vs. time
 emergent_BRD_plot <- between_year_data %>% 
   ggplot(aes(x=BRDYEAR, y=mean_percent_emerg, color=Watershed)) +
   geom_point() +
@@ -33,7 +33,6 @@ submergent_plot <- between_year_data %>%
   geom_smooth(se=FALSE) +
   xlab("Submergent Vegetation (%)")  +
   ylab(NULL) + 
-  theme(legend.position="none") +
   ylim(c(0,300))
 
 ## submerg vs. time
@@ -49,8 +48,7 @@ open_water_plot <- between_year_data %>%
   geom_point() +
   geom_smooth(se=FALSE) +
   xlab("Open Water (%)") +
-  ylab(NULL) + 
-  theme(legend.position="none")
+  ylab(NULL)
 
 ## open water vs. time
 open_water_BRD_plot <- between_year_data %>% 
@@ -65,8 +63,8 @@ canopy_plot <- between_year_data %>%
   geom_point() +
   geom_smooth(se=FALSE) +
   xlab("Canopy (%)") +
-  ylab(NULL) + 
-  theme(legend.position="none")
+  ylab(NULL)
+
 ## canopy vs. time
 canopy_BRD_plot <- between_year_data %>% 
   ggplot(aes(x=BRDYEAR, y=interpolated_canopy, color=Watershed)) +
@@ -80,8 +78,8 @@ rain_plot <- between_year_data %>%
   geom_point() +
   geom_smooth(se=FALSE) +
   xlab("Rainfall") +
-  ylab(NULL) + 
-  theme(legend.position="none")
+  ylab(NULL) 
+
 ## yearly rain vs. time
 rain_BRD_plot <- between_year_data %>% 
   ggplot(aes(x=BRDYEAR, y=yearly_rain, color=Watershed)) +
@@ -140,8 +138,7 @@ WaterTemp_plot <- between_year_data %>%
   geom_point() +
   geom_smooth(se=FALSE) +
   xlab("Water Temperature") +
-  ylab(NULL) + 
-  theme(legend.position="none")
+  ylab(NULL)
 
 ## WaterTemp vs. time
 WaterTemp_BRD_plot <- between_year_data %>% 
@@ -192,8 +189,7 @@ egg_BRD_plot <- between_year_data %>%
   geom_point() +
   geom_smooth(se=FALSE) +
   xlab("Year") +
-  ylab(NULL)  + 
-  theme(legend.position="none")
+  ylab(NULL)
 
 
 #### combined output with egg masses####
@@ -202,4 +198,4 @@ egg_BRD_plot <- between_year_data %>%
 
 
 # without salinity or depth
-plot_grid(emergent_plot, submergent_plot, open_water_plot, canopy_plot, rain_plot, AirTemp_plot, WaterTemp_plot, egg_BRD_plot, nrow=2)
+plot_grid(emergent_plot, submergent_plot, open_water_plot, canopy_plot,mean_max_depth_plot, max_depth_plot, rain_plot, AirTemp_plot, WaterTemp_plot, egg_BRD_plot, nrow=5)
