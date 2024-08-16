@@ -46,8 +46,8 @@ summary(data$NumberofEggMasses,na.rm = TRUE)
 5.  length of breeding season
 
 ```{r statistics_dataframe}
-statistics <-data|>
-  group_by(BRDYEAR,Watershed,LocationID)|>
+statistics <- data %>% 
+  group_by(BRDYEAR,Watershed,LocationID) %>% 
   summarize(survey_count = n_distinct(EventGUID),
             mean_egg_num = (sum(NumberofEggMasses, na.rm = TRUE)/survey_count),
             total_egg_num =sum(NumberofEggMasses, na.rm = TRUE),
@@ -70,7 +70,7 @@ count(data, LocationID)
 ## pre-2010 data
 
 ```{r pre2010}
-# Darren believes there is data 2004-2010 at Mori/Laguna Salada, Milagra, Big Lagoon, & Rodeo
+# Darren believes there is data 2004-2010 at Mori/Laguna Salada, Milagra, Big Lagoon, & Rodeo which prompted us to revisit our data before 2010 (prev filtered out)
 
 false_validation <- raw_data %>% select(Validation) %>% 
   group_by(Validation) %>% 
@@ -149,11 +149,21 @@ ggplot(btw_pre2010_data, aes(BRDYEAR, num_egg_masses)) +
   geom_line() +
   facet_wrap(.~LocationID)
 
+ggplot(btw_pre2010_data, aes(x=BRDYEAR, y=num_egg_masses, color=LocationID)) +
+  geom_point() +
+  geom_smooth(se=FALSE) +
+  xlab("Year")
+
 ## all data
 ggplot(between_year_data, aes(BRDYEAR, num_egg_masses)) +
   geom_point() +
   geom_line() +
   facet_wrap(.~LocationID)
+
+ggplot(between_year_data, aes(x=BRDYEAR, y=num_egg_masses, color=LocationID)) +
+  geom_point() +
+  geom_smooth(se=FALSE) +
+  xlab("Year")
 
 # number eggs vs. year (by Watershed)
 ## only pre2010 data
@@ -162,12 +172,21 @@ ggplot(btw_pre2010_data, aes(BRDYEAR, num_egg_masses)) +
   geom_line() +
   facet_wrap(.~Watershed)
 
+ggplot(btw_pre2010_data, aes(x=BRDYEAR, y=num_egg_masses, color=Watershed)) +
+  geom_point() +
+  geom_smooth(se=FALSE) +
+  xlab("Year")
+
 ## all data
 ggplot(between_year_data, aes(BRDYEAR, num_egg_masses)) +
   geom_point() +
   geom_line() +
   facet_wrap(.~Watershed)
 
+ggplot(between_year_data, aes(x=BRDYEAR, y=num_egg_masses, color=Watershed)) +
+  geom_point() +
+  geom_smooth(se=FALSE) +
+  xlab("Year")
 ```
 
 ## cover data
