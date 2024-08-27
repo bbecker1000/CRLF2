@@ -199,3 +199,4 @@ egg_BRD_plot <- between_year_data %>%
 
 # without salinity or depth
 plot_grid(emergent_plot, submergent_plot, open_water_plot, canopy_plot,mean_max_depth_plot, max_depth_plot, rain_plot, AirTemp_plot, WaterTemp_plot, egg_BRD_plot, nrow=5)
+ggsave('covariate plot by watershed.png')
