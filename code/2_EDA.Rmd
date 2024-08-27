@@ -160,6 +160,8 @@ ggplot(between_year_data, aes(BRDYEAR, num_egg_masses)) +
   geom_line() +
   facet_wrap(.~LocationID)
 
+ggsave('btw year - eggs by location.png', width = 15, height = 8, units = "in", path = "~/Documents/Berkeley/junior 2023-24/spring24/frog job/CRLF2/Output")
+
 ggplot(between_year_data, aes(x=BRDYEAR, y=num_egg_masses, color=LocationID)) +
   geom_point() +
   geom_smooth(se=FALSE) +
