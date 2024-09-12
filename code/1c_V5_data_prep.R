@@ -7,8 +7,9 @@ setwd(here::here("code"))
 # V4 = current working data
 current_data <- read_csv(here::here("data", "filtered_raw_data.csv"))
 
+#### prepping V5 NEW DATA - follows same process as 1_data_prep ####
 # reading in V5 NEW data from spreadsheets
-V5_raw_data <- read_csv(here::here("data", "CRLF_EGG_RAWDATA.csv"))
+V5_raw_data <- read_csv(here::here("data", "CRLF_EGG_RAWDATA_V5.csv"))
 rainfall_daily <- read_csv(here::here("data", "cm_daily_rain.csv"))
 rainfall_yearly <- read_csv(here::here("data", "cm_yearly_rain.csv"))
 land_cover <- read_csv(here::here("data", "cover_estimates.csv"))
@@ -20,11 +21,10 @@ location_type <- read_csv(here::here("data", "CRLF_tblLocations.csv")) %>%
   ) %>% 
   mutate(water_regime = as.factor(water_regime), water_flow = as.factor(water_flow))
 
-## prepping V5 NEW DATA - follows same process as 1_data_prep
 # filtered data is denoted below this, and uses unfiltered_data as a starting point
-V5_unfiltered_data <- V5_raw_data %>% select(-ParkCode, -ProjectCode, -BTime, -TTime, -USGS_ID, -SEASON, -SvyLength, -SvyWidth, -tblEvents_Comments, 
+V5_unfiltered_data <- V5_raw_data %>% select(-ParkCode, -ProjectCode, -BTime, -TTime, -USGS_ID, -SEASON, -SvyLength, -SvyWidth, 
                                        -DateEntered, -EventID, -SpeciesID, -WaterDepth, -EggDepth, -Distance, -EggMassStageID, -AS_UTMSOURCE, -AS_UTMZONE, 
-                                       -GPS_ID, -tblEggCount_CRLF_Comments, -AttachType) %>% 
+                                       -GPS_ID, -AttachType) %>% 
   filter(OldMass == "FALSE") %>%
   mutate(Date = strptime(Date, format = "%m/%d/%Y")) %>%
   mutate(Survey_MONTH = as.integer(format(Date, "%m"))) %>%
@@ -66,7 +66,7 @@ V5_unfiltered_data <- V5_raw_data %>% select(-ParkCode, -ProjectCode, -BTime, -T
 
 
 
-##### ~~~ *** DATA FILTERING *** ~~~ #####
+# ~~~ *** DATA FILTERING
 
 
 # filter to only include [commented OUT: the 7 watersheds that Darren said had the most data] and only sites that had at least 2 surveys in a given year
@@ -103,4 +103,11 @@ V5_data <- V5_unfiltered_data %>%
   )
 
 write_csv(data, here::here("data", "filtered_V5_raw_data.csv"))
+V5_data <- read_csv(here::here("data", "filtered_V5_raw_data.csv"))
 
+#### comparison #####
+x = V5_data %>% select(LocationID, BRDYEAR, EventGUID, Date)
+y = current_data %>% select(LocationID, BRDYEAR, EventGUID, Date)
+
+diff <- anti_join(x, y, by = "EventGUID")
+view(diff)
