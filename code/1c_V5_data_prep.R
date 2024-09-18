@@ -1,4 +1,4 @@
-# follows same process as 1_data_prep, but with CRLF V5 RAW DATA
+# follows same process as 1_data_prep, but with CRLF V6 RAW DATA
 library(tidyverse)
 library(dplyr)
 
@@ -7,9 +7,9 @@ setwd(here::here("code"))
 # V4 = current working data
 current_data <- read_csv(here::here("data", "filtered_raw_data.csv"))
 
-#### prepping V5 NEW DATA - follows same process as 1_data_prep ####
-# reading in V5 NEW data from spreadsheets
-V5_raw_data <- read_csv(here::here("data", "CRLF_EGG_RAWDATA_V5.csv"))
+#### prepping V6 NEW DATA - follows same process as 1_data_prep ####
+# reading in V6 NEW data from spreadsheets
+V6_raw_data <- read_csv(here::here("data", "CRLF_EGG_RAWDATA_V6.csv"))
 rainfall_daily <- read_csv(here::here("data", "cm_daily_rain.csv"))
 rainfall_yearly <- read_csv(here::here("data", "cm_yearly_rain.csv"))
 land_cover <- read_csv(here::here("data", "cover_estimates.csv"))
@@ -22,11 +22,11 @@ location_type <- read_csv(here::here("data", "CRLF_tblLocations.csv")) %>%
   mutate(water_regime = as.factor(water_regime), water_flow = as.factor(water_flow))
 
 # filtered data is denoted below this, and uses unfiltered_data as a starting point
-V5_unfiltered_data <- V5_raw_data %>% select(-ParkCode, -ProjectCode, -BTime, -TTime, -USGS_ID, -SEASON, -SvyLength, -SvyWidth, 
+V6_unfiltered_data <- V6_raw_data %>% select(-ParkCode, -ProjectCode, -BTime, -TTime, -USGS_ID, -SEASON, -SvyLength, -SvyWidth, 
                                        -DateEntered, -EventID, -SpeciesID, -WaterDepth, -EggDepth, -Distance, -EggMassStageID, -AS_UTMSOURCE, -AS_UTMZONE, 
                                        -GPS_ID, -AttachType) %>% 
   filter(OldMass == "FALSE") %>%
-  mutate(Date = strptime(Date, format = "%m/%d/%Y")) %>%
+  mutate(Date = strptime(SurveyDate, format = "%m/%d/%Y")) %>%
   mutate(Survey_MONTH = as.integer(format(Date, "%m"))) %>%
   mutate(LocationID = as.factor(LocationID), Watershed = as.factor(Watershed), Date = as.Date(Date), Obsv1 = as.factor(Obsv1), Obsv2 = as.factor(Obsv2), Obsv3 = as.factor(Obsv3), 
          Weather = as.factor(Weather), Wind = as.integer(Wind), HabType= as.factor(HabType), SurveyMethodID = as.integer(SurveyMethodID), SalinityMethodID = as.integer(SalinityMethodID), 
@@ -71,12 +71,12 @@ V5_unfiltered_data <- V5_raw_data %>% select(-ParkCode, -ProjectCode, -BTime, -T
 
 # filter to only include [commented OUT: the 7 watersheds that Darren said had the most data] and only sites that had at least 2 surveys in a given year
 # [commented OUT: and only after 2009]
-V5_data <- V5_unfiltered_data %>% 
+V6_data <- V6_unfiltered_data %>% 
   group_by(LocationID, BRDYEAR) %>% 
   summarize(survey_count_site_yr = n_distinct(EventGUID), .groups = "drop") %>% 
   ungroup() %>% 
   full_join(unfiltered_data, by = c("LocationID" = "LocationID", "BRDYEAR" = "BRDYEAR")) %>% 
-  filter(survey_count_site_yr > 1) %>% 
+  # filter(survey_count_site_yr > 1) %>% 
   # filter(Watershed == "Kanoff Creek" | Watershed == "Laguna Salada" | Watershed =="Milagra Creek"|
   #          Watershed == "Redwood Creek" | Watershed == "Rodeo Lagoon" | Watershed=="Tennessee Valley" |
   #          Watershed == "Wilkins Gulch") %>%
@@ -102,12 +102,11 @@ V5_data <- V5_unfiltered_data %>%
     )
   )
 
-write_csv(data, here::here("data", "filtered_V5_raw_data.csv"))
-V5_data <- read_csv(here::here("data", "filtered_V5_raw_data.csv"))
+write_csv(data, here::here("data", "filtered_V6_raw_data.csv"))
 
 #### comparison #####
-x = V5_data %>% select(LocationID, BRDYEAR, EventGUID, Date)
-y = current_data %>% select(LocationID, BRDYEAR, EventGUID, Date)
+# x = V6_data %>% select(LocationID, BRDYEAR, EventGUID, Date)
+# y = current_data %>% select(LocationID, BRDYEAR, EventGUID, Date)
 
-diff <- anti_join(x, y, by = "EventGUID")
+diff <- anti_join(current_data, V6_data)
 view(diff)
