@@ -108,5 +108,8 @@ write_csv(data, here::here("data", "filtered_V6_raw_data.csv"))
 # x = V6_data %>% select(LocationID, BRDYEAR, EventGUID, Date)
 # y = current_data %>% select(LocationID, BRDYEAR, EventGUID, Date)
 
-diff <- anti_join(current_data, V6_data)
+diff <- anti_join(V6_data, current_data)
 view(diff)
+
+nrow_diff <- nrow(V6_data) - nrow(current_data)
+nrow_diff
