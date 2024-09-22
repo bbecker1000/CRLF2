@@ -65,7 +65,8 @@ cm_daily_rain <- cm_rain %>%
 # for yearly rain
 cm_yearly_rain <- cm_rain %>% 
   group_by(Water_Year) %>% 
-  summarise(yearly_rain = sum(monthly_rain))
+  summarise(yearly_rain = sum(monthly_rain)) %>% 
+  mutate(yearly_rain_lag = lag(yearly_rain, n = 3))
 
 # write to CSV for daily and yearly rain
 

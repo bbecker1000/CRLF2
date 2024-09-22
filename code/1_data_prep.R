@@ -17,10 +17,8 @@ location_type <- read_csv(here::here("data", "CRLF_tblLocations.csv")) %>%
     water_regime = WaterRegime
   ) %>% 
   mutate(water_regime = as.factor(water_regime), water_flow = as.factor(water_flow))
-  
 
-# temporarily changing raw data to v3 because in v4, some dates are not present in CSV
-#raw_data <- read_csv(here::here("data", "CRLF_EGG_RAWDATA_no_city_data.csv"))
+#### DATA CLEANING ####
 
 # removing unnecessary columns, making new column for total vegetation (to make sure it adds to 100), making data types more accurate/easier to use
 # the DATA variable that this pipe generates has all validated rows and has not been filtered
@@ -68,8 +66,6 @@ unfiltered_data <- raw_data %>% select(-ParkCode, -ProjectCode, -BTime, -TTime, 
   )
 
 
-
-
 ##### ~~~ *** DATA FILTERING *** ~~~ #####
 
 
@@ -111,7 +107,7 @@ write_csv(data, here::here("data", "filtered_raw_data.csv"))
 #### ~~~ *** BETWEEN YEAR DATA *** ~~~ ####
 
 between_year_data <- data %>% 
-  select(LocationID, BRDYEAR, Watershed, NumberofEggMasses, AirTemp, WaterTemp, MaxD, WaterSalinity, CoastalSite, yearly_rain, 
+  select(LocationID, BRDYEAR, Watershed, NumberofEggMasses, AirTemp, WaterTemp, MaxD, WaterSalinity, CoastalSite, yearly_rain, yearly_rain_lag,
          ground_sub, ground_emerg, ground_open_water, interpolated_canopy, water_flow, water_regime) %>% 
   group_by(LocationID, BRDYEAR) %>% 
   summarize(
@@ -135,6 +131,7 @@ between_year_data <- data %>%
 # write to CSV
 write_csv(between_year_data, here::here("data", "between_year_data.csv"))
 
+#### cover comparison ####
 between_year_data_for_cover_comparison <- data %>% 
   select(LocationID, BRDYEAR, Watershed, NumberofEggMasses, AirTemp, WaterTemp, MaxD, WaterSalinity, CoastalSite, yearly_rain, mean_percent_sub, 
          mean_percent_emerg, mean_percent_water, ground_sub, ground_emerg, ground_open_water, interpolated_sub, interpolated_emerg, interpolated_openwater) %>% 
@@ -177,7 +174,7 @@ for (i in 1:nrow(temp_daily_rain_table)) {
 colnames(rain_to_date_col) <- c("rain_to_date")
 
 onset_of_breeding <- cbind(temp_daily_rain_table, rain_to_date_col) %>% select(-starts_with("day_")) %>% 
-  select(LocationID, BRDYEAR, Watershed, dayOfWY, rain_to_date, MaxD, NumberofEggMasses, yearly_rain, AirTemp, WaterTemp, water_flow, water_regime) %>% 
+  select(LocationID, BRDYEAR, Watershed, dayOfWY, rain_to_date, MaxD, NumberofEggMasses, yearly_rain, yearly_rain_lag, AirTemp, WaterTemp, water_flow, water_regime) %>% 
   group_by(BRDYEAR, LocationID) %>% 
   filter(NumberofEggMasses > 0) %>% 
   mutate(MaxD_yearly = if_else(all(is.na(MaxD)), NA, mean(MaxD, na.rm = TRUE)),
