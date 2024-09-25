@@ -128,8 +128,14 @@ between_year_data <- data %>%
   select(-max_salinity, -mean_salinity) %>% # deleting salinity from between year
   ungroup()
 
+between_year_data_lagged <- between_year_data %>% 
+  group_by(LocationID) %>% 
+  arrange(BRDYEAR) %>% 
+  mutate(num_egg_masses_lag = lag(num_egg_masses, n = 3)) %>% 
+  ungroup()
+
 # write to CSV
-write_csv(between_year_data, here::here("data", "between_year_data.csv"))
+write_csv(between_year_data_lagged, here::here("data", "between_year_data.csv"))
 
 #### cover comparison ####
 between_year_data_for_cover_comparison <- data %>% 
