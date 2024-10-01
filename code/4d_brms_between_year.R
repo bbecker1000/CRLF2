@@ -123,8 +123,7 @@ bprior.no.sal <- c(
   prior(student_t(1, 0.25, 0.5), coef =  smean_percent_sub_scaled_1), # slightly positive? based on hypotheses
   prior(student_t(1, 0, 0.5), coef =  sBRDYEAR_scaled_1 ),
   prior(student_t(1, -0.25, 0.5), coef =  smean_percent_water_scaled_1),
-  prior(student_t(1, 0, 0.5), coef =  sWaterTemp_scaled_1),
-  prior(student_t(1, 0.5, 0.5), coef =  syearly_rain_lag_scaled_1)
+  prior(student_t(1, 0, 0.5), coef =  sWaterTemp_scaled_1)
 )
 
 t0 <- Sys.time()
@@ -137,7 +136,7 @@ mod.hurdle.no.salinity <- brm(
        s(WaterTemp_scaled) +  
        s(mean_percent_sub_scaled) +
        s(yearly_rain_scaled, by = water_regime) +
-       s(yearly_rain_lag_scaled) + # should we include an interaction with water_regime here too?
+       s(yearly_rain_lag_scaled, by = water_regime) +
        (water_flow) +
        (1 | Watershed/LocationID),
      hu ~ 
