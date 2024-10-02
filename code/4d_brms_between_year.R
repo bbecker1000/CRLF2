@@ -167,7 +167,7 @@ summary(mod.hurdle)
 
 #pairs(mod.brm)
 pairs(mod.hurdle)
-conditional_effects(mod.brm, surface = FALSE, prob = 0.8)
+# conditional_effects(mod.brm, surface = FALSE, prob = 0.8)
 conditional_effects(mod.hurdle, surface = FALSE, prob = 0.8)
 #from Mark
 conditional_effects(mod.brm)|>
