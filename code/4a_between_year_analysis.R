@@ -35,7 +35,8 @@ scaled_between_year <- complete_btw_data %>%
     mean_max_depth_scaled = as.vector(scale(mean_max_depth)),
     max_depth_scaled = as.vector(scale(max_depth)),
     AirTemp_scaled = as.vector(scale(AirTemp)),
-    WaterTemp_scaled = as.vector(scale(WaterTemp))
+    WaterTemp_scaled = as.vector(scale(WaterTemp)),
+    yearly_rain_lag_scaled = as.vector(scale(yearly_rain_lag))
     # mean_salinity_scaled = as.vector(scale(mean_salinity)),
     # max_salinity_scaled = as.vector(scale(max_salinity)),
   )

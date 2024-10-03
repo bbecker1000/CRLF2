@@ -1,6 +1,5 @@
 library(brms)
 
-Mark-testing_if_i_can_push
 t0 <- Sys.time()
 t0<-Sys.time()
 
@@ -92,7 +91,7 @@ mod.hurdle <- brm(
        (water_flow) +
        (1 | Watershed/LocationID),
      hu ~ 
-       # s(yearly_rain_scaled, by = water_regime) +      # inflated model for zeros
+       s(yearly_rain_scaled, by = water_regime) +      # inflated model for zeros
        (1|Watershed/LocationID)),
   data = scaled_between_year,
   family = hurdle_negbinomial(),
@@ -136,7 +135,8 @@ mod.hurdle.no.salinity <- brm(
        s(interpolated_canopy_scaled) +
        s(WaterTemp_scaled) +  
        s(mean_percent_sub_scaled) +
-       s(yearly_rain_scaled, by =water_regime) +
+       s(yearly_rain_scaled, by = water_regime) +
+       s(yearly_rain_lag_scaled, by = water_regime) +
        (water_flow) +
        (1 | Watershed/LocationID),
      hu ~ 
@@ -167,7 +167,7 @@ summary(mod.hurdle)
 
 #pairs(mod.brm)
 pairs(mod.hurdle)
-conditional_effects(mod.brm, surface = FALSE, prob = 0.8)
+# conditional_effects(mod.brm, surface = FALSE, prob = 0.8)
 conditional_effects(mod.hurdle, surface = FALSE, prob = 0.8)
 #from Mark
 conditional_effects(mod.brm)|>
