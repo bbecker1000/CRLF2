@@ -106,17 +106,22 @@ hurdle_AirTempdata.slopes <- brm(
        Watershed +
        (yearly_rain_scaled:water_regime | Watershed/LocationID),
      hu ~ 
-       s(yearly_rain_scaled, by = water_regime) +      # inflated model for zeros
+       s(yearly_rain_scaled, by = water_regime) +    
+       Watershed + # inflated model for zeros
        (yearly_rain_scaled:water_regime | Watershed/LocationID)
      ),
   data = complete_scaled_btw,
   family = hurdle_negbinomial(),
   prior = bprior,
   chains = 3, cores = 3,
-  iter = 3000, # only need about 1000 for inference (3500-2500 warmup = 1000)
-  warmup = 2000, 
+  iter = 5000, # only need about 1000 for inference (3500-2500 warmup = 1000)
+  warmup = 500, 
   control = list(adapt_delta = 0.98)
 )
+t1 <- Sys.time()
+t1-t0
+beepr::beep(0)
+
 
 summary(hurdle_AirTempdata.slopes)
 conditional_effects(hurdle_AirTempdata.slopes, surface = FALSE, prob = 0.8)
