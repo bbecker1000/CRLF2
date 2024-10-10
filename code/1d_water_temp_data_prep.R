@@ -77,13 +77,13 @@ band_first_breeding_dates <- as.vector(as.POSIXct(band_surveys$breeding_date))
 rodeo_first_breeding_dates <- as.vector(as.POSIXct(rodeo_surveys$breeding_date))
 
 # making plots
-band_plot <- ggplot(data = band_temps_with_breeding, aes(x = date, y = mean_temp)) + 
+band_plot <- ggplot(data = band_breeding_degree_days, aes(x = date, y = cum_degree_days)) + 
   geom_line() +
   geom_vline(xintercept = as.POSIXct(band_first_breeding_dates), color = "blue") +
   scale_x_datetime(limits = c(as.POSIXct('2015-10-01'), as.POSIXct('2024-10-01')))
 band_plot
 
-rodeo_plot <- ggplot(data = rodeo_temps_with_breeding, aes(x = date, y = mean_temp)) + 
+rodeo_plot <- ggplot(data = rodeo_breeding_degree_days, aes(x = date, y = cum_degree_days)) + 
   geom_line() +
   geom_vline(xintercept = as.POSIXct(rodeo_first_breeding_dates), color = "blue") +
   scale_x_datetime(limits = c(as.POSIXct('2014-10-01'), as.POSIXct('2024-10-01')))

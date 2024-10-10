@@ -4,6 +4,8 @@ library(lme4)
 t0 <- Sys.time()
 t0<-Sys.time()
 
+scaled_between_year <- read_csv(here::here("data", "scaled_between_year.csv"))
+
 #### BRM model (no longer using) ####
 mod.brm <- brm(bf(num_egg_masses ~  #bf creates a model statement for compilation
                       s(BRDYEAR_scaled) + 
@@ -491,15 +493,15 @@ bprior.no.sal.linear.zi <- c(
   prior(normal(0, 0.5), coef = BRDYEAR_scaled), 
   prior(normal(-0.5, 0.5), coef = interpolated_canopy_scaled), 
   prior(normal(0.25, 0.5), coef = mean_percent_sub_scaled), 
-  prior(normal(0.5, 0.5), coef = mean_percent_water_scaled), 
-  prior(normal(0.0, 1), coef = water_flowlentic), 
-  prior(normal(0.0, 1), coef = water_flowlotic), 
-  prior(normal(0.0, 1), coef = water_regimeseasonal), 
-  prior(normal(0.0, 1), coef = yearly_rain_lag_scaled), 
-  prior(normal(0.25, 1), coef = WaterTemp_scaled), 
+  prior(normal(0.0, 0.5), coef = mean_percent_water_scaled), # add squared term
+  prior(normal(0.5, 1), coef = water_flowlentic), 
+  prior(normal(-0.5, 1), coef = water_flowlotic), 
+  prior(normal(0.5, 1), coef = water_regimeseasonal), 
+  prior(normal(0.5, 1), coef = yearly_rain_lag_scaled), 
+  prior(normal(0.25, 1), coef = WaterTemp_scaled), # add squared term
   prior(normal(0.25, 1), coef = yearly_rain_scaled), 
-  prior(normal(0.0, 1), coef = yearly_rain_scaled:water_regimeseasonal),
-  prior(normal(0.0, 1), coef = yearly_rain_lag_scaled:water_regimeseasonal)
+  prior(normal(0.25, 1), coef = yearly_rain_scaled:water_regimeseasonal),
+  prior(normal(0.25, 1), coef = yearly_rain_lag_scaled:water_regimeseasonal)
 )
 
 
@@ -559,10 +561,9 @@ mcmc_intervals(posterior, point_est = "mean", prob = 0.89, prob_outer = 0.89,
                )) +
   geom_vline(xintercept = 0, linetype = 2)
 
+plot_model(mod.hurdle, type = "pred", terms = c("yearly_rain_lag_scaled"))
 
 ########### End ######
-
-
 
 
 
