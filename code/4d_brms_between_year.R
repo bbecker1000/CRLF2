@@ -147,8 +147,8 @@ mod.hurdle.no.salinity <- brm(
   prior = bprior.no.sal,
   chains = 3, cores = 3,
   iter = 11500, # only need about 1000 for inference (3500-2500 warmup = 1000)
-  warmup = 10500, 
-  control = list(adapt_delta = 0.99)
+  warmup = 11000, 
+  control = list(adapt_delta = 0.995)
 )
 
 t1<-Sys.time()
