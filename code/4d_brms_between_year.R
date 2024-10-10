@@ -1,4 +1,5 @@
 library(brms)
+library(lme4)
 
 t0 <- Sys.time()
 t0<-Sys.time()
@@ -183,15 +184,9 @@ mod.hurdle.no.salinity.gam <- brm(
   family = hurdle_negbinomial(),
   prior = bprior.no.sal,
   chains = 3, cores = 3,
-<<<<<<< HEAD
-  iter = 11500, # only need about 1000 for inference (3500-2500 warmup = 1000)
-  warmup = 11000, 
-  control = list(adapt_delta = 0.995)
-=======
   iter = 3000, # 11500, # only need about 500 for inference
   warmup = 2800, #11000, 
   control = list(adapt_delta = 0.97)
->>>>>>> 9b44fcb9ee6050e3dbca4a072cda294a09927f23
 )
 
 t1<-Sys.time()
