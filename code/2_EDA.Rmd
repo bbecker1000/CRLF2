@@ -67,6 +67,31 @@ count(data, LocationID)
 
 # plots
 
+```{r lagged_eggs}
+between_year_data_lagged <- between_year_data %>%
+  group_by(LocationID) %>%
+  arrange(BRDYEAR) %>%
+  mutate(num_egg_masses_lag = lag(num_egg_masses, n = 3)) %>%
+  ungroup()
+
+lag_sites <- ggplot(between_year_data_lagged, aes(x=BRDYEAR)) +
+  geom_jitter(aes(y=num_egg_masses), color="darkolivegreen4", alpha=0.5) +
+  geom_smooth(aes(y=num_egg_masses), color="darkolivegreen4",alpha=0.3, se=F) +
+  geom_jitter(aes(y=num_egg_masses_lag), color="blue", alpha=0.5) +
+  geom_smooth(aes(y=num_egg_masses_lag), color="blue", alpha=0.3, se=F) +
+  facet_wrap(.~LocationID)
+
+## more relevant, just seemingly (at quick glance) continous sites
+cont_btw_lag <- between_year_data_lagged %>% filter(LocationID=='KC01' | LocationID=='KC02' |LocationID=='KC03' | LocationID=='LS01' | LocationID=='LS04' | LocationID=='LS05' | LocationID=='LS06' | LocationID=='LS07' | LocationID=='LS08' | LocationID=='LS09' | LocationID=='LS11' | LocationID=='LS12' | LocationID=='MC01' | LocationID=='RC01' | LocationID=='RC02' | LocationID=='RC03' | LocationID=='RC07' | LocationID=='RC10' | LocationID=='RC11' | LocationID=='RC13' | LocationID=='RC14' | LocationID=='RC15' | LocationID=='RC17' | LocationID=='RC18' | LocationID=='RC20' | LocationID=='RC24' | LocationID=='RC25' | LocationID=='RC26' | LocationID=='RL02' | LocationID=='RL04' | LocationID=='RL07' | LocationID=='TV02' | LocationID=='TV03' | LocationID=='TV06' | LocationID=='WG01')
+
+cont_lag_sites <- ggplot(cont_btw_lag, aes(x=BRDYEAR)) +
+  geom_jitter(aes(y=num_egg_masses), color="darkolivegreen4", alpha=0.5) +
+  geom_smooth(aes(y=num_egg_masses), color="darkolivegreen4",alpha=0.3, se=F) +
+  geom_jitter(aes(y=num_egg_masses_lag), color="blue", alpha=0.5) +
+  geom_smooth(aes(y=num_egg_masses_lag), color="blue", alpha=0.3, se=F) +
+  facet_wrap(.~LocationID)
+```
+
 ## pre-2010 data
 
 ```{r pre2010}
