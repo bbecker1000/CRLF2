@@ -219,7 +219,7 @@ conditional_smooths(mod.hurdle, prob = 0.89)
 
 ## zi.gam
 
-#### hurdle model Remove salinity ####
+#### ZI hurdle model no salinity ####
 bprior.no.sal.zi.gam <- c(
   #counts
   prior(normal(0, 0.5), coef = sBRDYEAR_scaled_1), 
@@ -264,7 +264,7 @@ mod.zi.no.salinity.gam <- brm(
 summary(mod.zi.no.salinity.gam)
 
 
-#### hurdle model plots ####
+#### mod.zi.no.salinity.gam model plots ####
 
 #pairs(mod.brm)
 pairs(mod.zi.no.salinity.gam)
@@ -409,7 +409,7 @@ beepr::beep(0)
 mod.hurdle <- mod.hurdle.no.salinity.linear
 summary(mod.hurdle, prob = 0.89)
 
-#### hurdle model plots ####
+#### mod.hurdle.no.salinity.linear plots ####
 
 #pairs(mod.brm)
 # conditional_effects(mod.brm, surface = FALSE, prob = 0.8)
@@ -559,7 +559,7 @@ mcmc_intervals(posterior, point_est = "mean", prob = 0.89, prob_outer = 0.89,
   geom_vline(xintercept = 0, linetype = 2)
 
 
-###########End
+########### End ######
 
 
 
