@@ -85,7 +85,7 @@ rodeo_breeding_degree_days <- rodeo_temps %>%
   mutate(temperature_threshold = str_extract(temperature_threshold, "(?<=_)[^_]+$"),
          temperature_threshold = factor(temperature_threshold, levels = c('7', '8', '9', '10', '11'))) %>% 
   select(date, mean_temp, cum_degree_days, temperature_threshold) %>% 
-  inner_join(., band_surveys, by = join_by("date" == "breeding_date")) %>% 
+  inner_join(., rodeo_surveys, by = join_by("date" == "breeding_date")) %>% 
   mutate(date = as.POSIXct(date)) %>% 
   group_by(temperature_threshold) %>% 
   arrange(cum_degree_days) %>% 
@@ -93,18 +93,31 @@ rodeo_breeding_degree_days <- rodeo_temps %>%
 
 write_csv(rodeo_breeding_degree_days, here::here("data", "rodeo_degree_days.csv"))
 
-# plots disregarding year -- proportion of breeding for verious thresholds
+# plots disregarding year -- proportion of breeding for various thresholds
 band_degree_day_plot <- ggplot(data = band_breeding_degree_days, aes(x = cum_degree_days, y=  proportion_breeding)) +
   geom_step(aes(colour = temperature_threshold))
 
 rodeo_degree_day_plot <- ggplot(data = rodeo_breeding_degree_days, aes(x = cum_degree_days, y=  proportion_breeding)) +
   geom_step(aes(colour = temperature_threshold))
 
-# plots for degree days vs. day of breeding year, colored by year
-# TODO: make this plot but for rodeo. also maybe figure out how to display this in a way that's easier to interpret...
-band_temp_plot <- ggplot(data = band_temps %>% filter(BRDYEAR > 2015), aes(y = cum_degree_days_9, x = day_number)) +
-  geom_step(aes(colour = as.factor(BRDYEAR))) +
-  geom_vline(data = band_surveys %>% filter(BRDYEAR > 2015), aes(xintercept = first_breeding, color = as.factor(BRDYEAR)))
+# plots for degree days vs. day of breeding year
+band_temp_plot <- ggplot(data = band_breeding_degree_days %>% filter(BRDYEAR > 2015, temperature_threshold == 9), aes(y = cum_degree_days, x = first_breeding)) +
+  geom_point(aes(colour = as.factor(BRDYEAR))) +
+  geom_smooth(method = "lm", color = "black", alpha = 0.2)
+band_temp_plot
+
+rodeo_temp_plot <- ggplot(data = rodeo_breeding_degree_days %>% filter(BRDYEAR > 2015, temperature_threshold == 9), aes(y = cum_degree_days, x = first_breeding)) +
+  geom_point(aes(colour = as.factor(BRDYEAR))) +
+  geom_smooth(method = "lm", color = "black", alpha = 0.2)
+rodeo_temp_plot
+
+# comparison plot for water temp (on the day of breeding) vs. breeding date
+water_temp_plot <- ggplot(data = rbind(band_breeding_degree_days, rodeo_breeding_degree_days), aes(x = first_breeding, y = mean_temp)) +
+  geom_point(aes(color = LocationID))
+
+# comparison plot for degree days
+degree_day_plot <- ggplot(data = rbind(band_breeding_degree_days, rodeo_breeding_degree_days) %>% filter(temperature_threshold == 9), aes(x = first_breeding, y = cum_degree_days)) +
+  geom_point(aes(color = LocationID))
 
 # vectors of first breeding for vlines in plots
 band_first_breeding_dates <- as.vector(as.POSIXct(band_surveys$breeding_date))
