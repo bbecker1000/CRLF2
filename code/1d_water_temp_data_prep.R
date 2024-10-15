@@ -3,6 +3,7 @@ library(here)
 library(tidyverse)
 library(ggplot2)
 library(lubridate)
+library(stringr)
 
 setwd(here::here("code"))
 
@@ -10,11 +11,23 @@ setwd(here::here("code"))
 band_temps <- read_csv(here::here("data", "watertemp_banducci.csv")) %>% 
   mutate(timestamp = mdy_hm(timestamp),
          temperature = (value - 32) * (5/9)) %>% 
-  select(timestamp, temperature)
+  mutate(date = date(timestamp)) %>% 
+  group_by(date) %>% 
+  summarize(mean_temp = mean(temperature)) %>% 
+  ungroup() %>% 
+  select(date, mean_temp) %>% 
+  mutate(BRDYEAR = if_else(month(date) > 9, year(date) + 1, year(date)),
+         beginning_WY = ymd(paste0(BRDYEAR - 1, "1001")),
+         day_number = as.numeric(date - beginning_WY))
 rodeo_temps <- read_csv(here::here("data", "watertemp_rodeo.csv")) %>% 
   mutate(timestamp = mdy_hm(timestamp),
          temperature = if_else(value > 30, ((value - 32) * (5/9)), (value))) %>% 
-  select(timestamp, temperature)
+  mutate(date = date(timestamp)) %>% 
+  group_by(date) %>% 
+  summarize(mean_temp = mean(temperature)) %>% 
+  ungroup() %>% 
+  select(date, mean_temp)
+
 
 # importing survey data
 band_surveys <- read_csv(here::here("data", "onset_of_breeding.csv")) %>% 
@@ -35,42 +48,63 @@ rodeo_surveys <- read_csv(here::here("data", "onset_of_breeding.csv")) %>%
 # to calculate degree days, we want to add together all the days where
 # the temperature was above a certain threshold temperature
 
-temp_threshold = 10 # can change depending on threshold we choose
+for(temp_threshold in 7:11) {
+  band_temps <- band_temps %>% 
+    mutate(!!paste0("degree_days_", temp_threshold) := if_else(mean_temp > temp_threshold, (mean_temp - temp_threshold), 0)) %>% 
+    group_by(beginning_WY) %>% 
+    mutate(!!paste0("cum_degree_days_", temp_threshold) := cumsum(!!sym(paste0("degree_days_", temp_threshold)))) %>% 
+    ungroup()
+}
 
-band_daily_temps <- band_temps %>% 
-  mutate(date = date(timestamp)) %>% 
-  group_by(date) %>% 
-  summarize(mean_temp = mean(temperature)) %>% 
-  ungroup() %>% 
-  mutate(degree_days = if_else(mean_temp > temp_threshold, (mean_temp - temp_threshold), 0),
-         BRDYEAR = if_else(month(date) > 9, year(date) + 1, year(date)),
-         beginning_WY = ymd(paste0(BRDYEAR - 1, "1001"))) %>% 
-  group_by(beginning_WY) %>% 
-  mutate(cum_degree_days = cumsum(degree_days))
-
-rodeo_daily_temps <- rodeo_temps %>% 
-  mutate(date = date(timestamp)) %>% 
-  group_by(date) %>% 
-  summarize(mean_temp = mean(temperature)) %>% 
-  ungroup() %>% 
-  mutate(degree_days = if_else(mean_temp > temp_threshold, (mean_temp - temp_threshold), 0),
-         BRDYEAR = if_else(month(date) > 9, year(date) + 1, year(date)),
-         beginning_WY = ymd(paste0(BRDYEAR - 1, "1001"))) %>% 
-  group_by(beginning_WY) %>% 
-  mutate(cum_degree_days = cumsum(degree_days))
+for(temp_threshold in 7:11) {
+  rodeo_temps <- rodeo_temps %>% 
+    mutate(!!paste0("degree_days_", temp_threshold) := if_else(mean_temp > temp_threshold, (mean_temp - temp_threshold), 0),
+           BRDYEAR = if_else(month(date) > 9, year(date) + 1, year(date)),
+           beginning_WY = ymd(paste0(BRDYEAR - 1, "1001"))) %>% 
+    group_by(beginning_WY) %>% 
+    mutate(!!paste0("cum_degree_days_", temp_threshold) := cumsum(!!sym(paste0("degree_days_", temp_threshold)))) %>% 
+    ungroup()
+}
 
 # joining temperature data to breeding data
-band_breeding_degree_days <- band_daily_temps %>% 
-  right_join(., band_surveys, by = join_by("date" == "breeding_date")) %>% 
-  mutate(date = as.POSIXct(date))
+band_breeding_degree_days <- band_temps %>% 
+  pivot_longer(cols = starts_with("cum_degree_days"), names_to = "temperature_threshold", values_to = "cum_degree_days") %>%
+  mutate(temperature_threshold = str_extract(temperature_threshold, "(?<=_)[^_]+$"),
+         temperature_threshold = factor(temperature_threshold, levels = c('7', '8', '9', '10', '11'))) %>% 
+  select(date, mean_temp, cum_degree_days, temperature_threshold) %>% 
+  inner_join(., band_surveys, by = join_by("date" == "breeding_date")) %>% 
+  mutate(date = as.POSIXct(date)) %>% 
+  group_by(temperature_threshold) %>% 
+  arrange(cum_degree_days) %>% 
+  mutate(proportion_breeding = cumsum(NumberofEggMasses) / sum(NumberofEggMasses))
 
 write_csv(band_breeding_degree_days, here::here("data", "banducci_degree_days.csv"))
 
-rodeo_breeding_degree_days <- rodeo_daily_temps %>% 
-  right_join(., rodeo_surveys, by = join_by("date" == "breeding_date")) %>% 
-  mutate(date = as.POSIXct(date))
+rodeo_breeding_degree_days <- rodeo_temps %>% 
+  pivot_longer(cols = starts_with("cum_degree_days"), names_to = "temperature_threshold", values_to = "cum_degree_days") %>%
+  mutate(temperature_threshold = str_extract(temperature_threshold, "(?<=_)[^_]+$"),
+         temperature_threshold = factor(temperature_threshold, levels = c('7', '8', '9', '10', '11'))) %>% 
+  select(date, mean_temp, cum_degree_days, temperature_threshold) %>% 
+  inner_join(., band_surveys, by = join_by("date" == "breeding_date")) %>% 
+  mutate(date = as.POSIXct(date)) %>% 
+  group_by(temperature_threshold) %>% 
+  arrange(cum_degree_days) %>% 
+  mutate(proportion_breeding = cumsum(NumberofEggMasses) / sum(NumberofEggMasses))
 
 write_csv(rodeo_breeding_degree_days, here::here("data", "rodeo_degree_days.csv"))
+
+# plots disregarding year -- proportion of breeding for verious thresholds
+band_degree_day_plot <- ggplot(data = band_breeding_degree_days, aes(x = cum_degree_days, y=  proportion_breeding)) +
+  geom_step(aes(colour = temperature_threshold))
+
+rodeo_degree_day_plot <- ggplot(data = rodeo_breeding_degree_days, aes(x = cum_degree_days, y=  proportion_breeding)) +
+  geom_step(aes(colour = temperature_threshold))
+
+# plots for degree days vs. day of breeding year, colored by year
+# TODO: make this plot but for rodeo. also maybe figure out how to display this in a way that's easier to interpret...
+band_temp_plot <- ggplot(data = band_temps %>% filter(BRDYEAR > 2015), aes(y = cum_degree_days_9, x = day_number)) +
+  geom_step(aes(colour = as.factor(BRDYEAR))) +
+  geom_vline(data = band_surveys %>% filter(BRDYEAR > 2015), aes(xintercept = first_breeding, color = as.factor(BRDYEAR)))
 
 # vectors of first breeding for vlines in plots
 band_first_breeding_dates <- as.vector(as.POSIXct(band_surveys$breeding_date))
