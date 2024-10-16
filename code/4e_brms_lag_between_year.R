@@ -32,7 +32,8 @@ scaled_lag_between_year <- complete_lag_btw_data %>%
 
 #### priors ####
 # taken 10-16-2024 from bprior.no.sal.linear.zi priors (4d)
-lag.priors <- c(prior(normal(0, 0.5), coef = BRDYEAR_scaled),
+lag.priors <- c(
+  prior(normal(0, 0.5), coef = BRDYEAR_scaled),
   prior(normal(-0.5, 0.5), coef = interpolated_canopy_scaled),
   prior(normal(0.25, 0.5), coef = mean_percent_sub_scaled),
   prior(normal(0.0, 0.5), coef = mean_percent_water_scaled), # add squared term
@@ -44,7 +45,7 @@ lag.priors <- c(prior(normal(0, 0.5), coef = BRDYEAR_scaled),
   prior(normal(0.25, 1), coef = yearly_rain_scaled),
   prior(normal(0.25, 1), coef = yearly_rain_scaled:water_regimeseasonal),
   prior(normal(0.25, 1), coef = yearly_rain_lag_scaled:water_regimeseasonal),
-  prior(normal(0.5, 1), coef = yearly_rain_lag_scaled:num_egg_masses_lag_scaled),
+  prior(normal(0.5, 1), coef = yearly_rain_lag_scaled:num_egg_masses_lag_scaled)
 )
 
 #### model ####
