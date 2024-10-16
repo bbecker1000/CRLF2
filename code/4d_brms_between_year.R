@@ -1,8 +1,6 @@
 library(brms)
 library(lme4)
 
-t0 <- Sys.time()
-
 scaled_between_year <- read_csv(here::here("data", "scaled_between_year.csv"))
 
 #### hurdle GAM model no salinity ####

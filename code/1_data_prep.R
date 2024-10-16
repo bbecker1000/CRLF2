@@ -141,6 +141,7 @@ between_year_data_lagged <- between_year_data %>%
 
 # write to CSV
 write_csv(between_year_data, here::here("data", "between_year_data.csv"))
+write_csv(between_year_data_lagged, here::here("data", "lag_between_year_data.csv"))
 
 #### cover comparison ####
 between_year_data_for_cover_comparison <- data %>% 
