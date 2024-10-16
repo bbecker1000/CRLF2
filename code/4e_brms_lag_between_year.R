@@ -68,8 +68,8 @@ lag.zi.linear <- brm(
   family = zero_inflated_negbinomial(),
   prior = lag.priors,
   chains = 3, cores = 3,
-  iter = 1000, # 11500, # only need about 500 for inference
-  warmup = 900, #11000, 
+  iter = 5500, # 11500, # only need about 500 for inference
+  warmup = 4500, #11000, 
   control = list(adapt_delta = 0.97))
 
 summary(lag.zi.linear, prob = 0.89)
