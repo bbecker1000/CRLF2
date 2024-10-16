@@ -102,7 +102,9 @@ data <- unfiltered_data %>%
       LocationID == "LS02" | LocationID == "LS03" ~ "LS11",
       TRUE ~ LocationID
     )
-  )
+  ) 
+  # %>% 
+  # filter(WaterVis >= 0.3)
 
 write_csv(data, here::here("data", "filtered_raw_data.csv"))
 
