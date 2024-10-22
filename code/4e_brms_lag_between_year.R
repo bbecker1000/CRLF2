@@ -60,6 +60,7 @@ lag.zi.linear <- brm(
     yearly_rain_scaled : water_regime +
     yearly_rain_lag_scaled +
     yearly_rain_lag_scaled:num_egg_masses_lag_scaled +
+    num_egg_masses_lag_scaled +
     water_regime +
     yearly_rain_lag_scaled : water_regime +
     water_flow +
