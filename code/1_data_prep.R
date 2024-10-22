@@ -64,7 +64,8 @@ unfiltered_data <- raw_data %>% select(-ParkCode, -ProjectCode, -BTime, -TTime, 
     mean_percent_sub = if_else(ground_percent_cover_validation == TRUE, if_else(interpolated_percent_cover_validation, mean(c_across(all_of(c("ground_sub", "interpolated_sub"))), na.rm = TRUE), ground_sub), interpolated_sub),
     mean_percent_emerg = if_else(ground_percent_cover_validation == TRUE, if_else(interpolated_percent_cover_validation, mean(c_across(all_of(c("ground_emerg", "interpolated_emerg"))), na.rm = TRUE), ground_emerg), interpolated_emerg),
     mean_percent_water = if_else(ground_percent_cover_validation == TRUE, if_else(interpolated_percent_cover_validation, mean(c_across(all_of(c("ground_open_water", "interpolated_openwater"))), na.rm = TRUE), ground_open_water), interpolated_openwater),
-    LocationID = as.factor(LocationID)
+    LocationID = as.factor(LocationID),
+    WaterVis = as.factor(if_else(is.na(WaterVis), "unknown", if_else(WaterVis < 0.3, "low", "high")))
   )
 
 
@@ -112,7 +113,7 @@ write_csv(data, here::here("data", "filtered_raw_data.csv"))
 
 between_year_data <- data %>% 
   select(LocationID, BRDYEAR, Watershed, NumberofEggMasses, AirTemp, WaterTemp, MaxD, WaterSalinity, CoastalSite, yearly_rain, yearly_rain_lag,
-         ground_sub, ground_emerg, ground_open_water, interpolated_canopy, water_flow, water_regime, DrySurvey) %>% 
+         ground_sub, ground_emerg, ground_open_water, interpolated_canopy, water_flow, water_regime, DrySurvey, WaterVis) %>% 
   group_by(LocationID, BRDYEAR) %>% 
   summarize(
          mean_max_depth = ifelse(all(is.na(MaxD)), NA, mean(MaxD, na.rm = TRUE)),
@@ -126,23 +127,42 @@ between_year_data <- data %>%
          mean_percent_emerg = ifelse(all(is.na(ground_emerg)), NA, mean(ground_emerg, na.rm = TRUE)),
          mean_percent_water = ifelse(all(is.na(ground_open_water)), NA, mean(ground_open_water, na.rm = TRUE)),
          dry_year = ifelse(all(DrySurvey), TRUE, FALSE),
+         water_vis = as.factor(if_else(all(WaterVis == "unknown"), "unknown", if_else(all(WaterVis == "high"), "high", if_else(all(WaterVis == "low"), "low", "mixed")))),
          across(everything(), ~first(.))) %>% 
   select(-MaxD, -WaterSalinity, -NumberofEggMasses, -ground_sub, -ground_emerg, -ground_open_water, -DrySurvey) %>% 
   mutate(mean_salinity = if_else(CoastalSite, mean_salinity, 0),
-         max_salinity = if_else(CoastalSite, max_salinity, 0)) %>% 
+         max_salinity = if_else(CoastalSite, max_salinity, 0),
+         LocationID = as.factor(LocationID),
+         Watershed = as.factor(Watershed)) %>% 
   select(-max_salinity, -mean_salinity) %>% # deleting salinity from between year
   ungroup()
 
+between_year_data$complete_case <- complete.cases(between_year_data)
+
+scaled_between_year <- between_year_data %>% 
+  filter(complete_case == TRUE) %>% 
+  mutate( BRDYEAR_scaled = as.vector(scale(BRDYEAR)),
+          mean_percent_sub_scaled = as.vector(scale(mean_percent_sub)),
+          mean_percent_emerg_scaled = as.vector(scale(mean_percent_emerg)),
+          mean_percent_water_scaled = as.vector(scale(mean_percent_water)),
+          interpolated_canopy_scaled = as.vector(scale(interpolated_canopy)),
+          yearly_rain_scaled = as.vector(scale(yearly_rain)),
+          mean_max_depth_scaled = as.vector(scale(mean_max_depth)),
+          max_depth_scaled = as.vector(scale(max_depth)),
+          AirTemp_scaled = as.vector(scale(AirTemp)),
+          WaterTemp_scaled = as.vector(scale(WaterTemp)),
+          yearly_rain_lag_scaled = as.vector(scale(yearly_rain_lag)))
+
 # if we want to include lagged egg masses, this is the code to do so
 # holding off for now because it produces so many NA's
-between_year_data_lagged <- between_year_data %>%
+between_year_data_lagged <- scaled_between_year %>%
   group_by(LocationID) %>%
-  arrange(BRDYEAR) %>%
+  arrange(BRDYEAR_scaled) %>%
   mutate(num_egg_masses_lag = lag(num_egg_masses, n = 3)) %>%
   ungroup()
 
 # write to CSV
-write_csv(between_year_data, here::here("data", "between_year_data.csv"))
+write_csv(scaled_between_year, here::here("data", "scaled_between_year.csv"))
 write_csv(between_year_data_lagged, here::here("data", "lag_between_year_data.csv"))
 
 #### cover comparison ####
@@ -188,7 +208,7 @@ for (i in 1:nrow(temp_daily_rain_table)) {
 colnames(rain_to_date_col) <- c("rain_to_date")
 
 onset_of_breeding <- cbind(temp_daily_rain_table, rain_to_date_col) %>% select(-starts_with("day_")) %>% 
-  select(LocationID, BRDYEAR, Watershed, dayOfWY, rain_to_date, MaxD, NumberofEggMasses, yearly_rain, yearly_rain_lag, AirTemp, WaterTemp, water_flow, water_regime) %>% 
+  select(LocationID, BRDYEAR, Watershed, dayOfWY, rain_to_date, MaxD, NumberofEggMasses, yearly_rain, yearly_rain_lag, AirTemp, WaterTemp, water_flow, water_regime, WaterVis, DrySurvey) %>% 
   group_by(BRDYEAR, LocationID) %>% 
   filter(NumberofEggMasses > 0) %>% 
   mutate(MaxD_yearly = if_else(all(is.na(MaxD)), NA, mean(MaxD, na.rm = TRUE)),

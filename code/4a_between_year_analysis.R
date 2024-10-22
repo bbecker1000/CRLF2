@@ -41,7 +41,7 @@ scaled_between_year <- complete_btw_data %>%
     # max_salinity_scaled = as.vector(scale(max_salinity)),
   )
 
-write_csv(complete_btw_data, here::here("data", "scaled_between_year.csv"))
+write_csv(scaled_between_year, here::here("data", "scaled_between_year.csv"))
 
 
 ### zero-inflated GAM model ####
