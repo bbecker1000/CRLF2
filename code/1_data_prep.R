@@ -65,7 +65,7 @@ unfiltered_data <- raw_data %>% select(-ParkCode, -ProjectCode, -BTime, -TTime, 
     mean_percent_emerg = if_else(ground_percent_cover_validation == TRUE, if_else(interpolated_percent_cover_validation, mean(c_across(all_of(c("ground_emerg", "interpolated_emerg"))), na.rm = TRUE), ground_emerg), interpolated_emerg),
     mean_percent_water = if_else(ground_percent_cover_validation == TRUE, if_else(interpolated_percent_cover_validation, mean(c_across(all_of(c("ground_open_water", "interpolated_openwater"))), na.rm = TRUE), ground_open_water), interpolated_openwater),
     LocationID = as.factor(LocationID),
-    WaterVis = as.factor(if_else(is.na(WaterVis), "unknown", if_else(WaterVis < 0.3, "low", "high")))
+    WaterVis = as.integer(if_else(is.na(WaterVis), NA, if_else(WaterVis < 0.3, 0, 1)))
   )
 
 
@@ -127,7 +127,9 @@ between_year_data <- data %>%
          mean_percent_emerg = ifelse(all(is.na(ground_emerg)), NA, mean(ground_emerg, na.rm = TRUE)),
          mean_percent_water = ifelse(all(is.na(ground_open_water)), NA, mean(ground_open_water, na.rm = TRUE)),
          dry_year = ifelse(all(DrySurvey), TRUE, FALSE),
-         water_vis = as.factor(if_else(all(WaterVis == "unknown"), "unknown", if_else(all(WaterVis == "high"), "high", if_else(all(WaterVis == "low"), "low", "mixed")))),
+         proportion_high_water_vis = sum(WaterVis, na.rm = TRUE) / (n() - sum(is.na(WaterVis))),
+         proportion_na_water_vis = sum(is.na(WaterVis)) / n(),
+         proportion_high_water_vis = if_else(is.nan(proportion_high_water_vis), 0, proportion_high_water_vis),
          across(everything(), ~first(.))) %>% 
   select(-MaxD, -WaterSalinity, -NumberofEggMasses, -ground_sub, -ground_emerg, -ground_open_water, -DrySurvey) %>% 
   mutate(mean_salinity = if_else(CoastalSite, mean_salinity, 0),
