@@ -19,9 +19,9 @@ bprior.no.sal.linear.zi <- c(
   prior(normal(0.25, 1), coef = yearly_rain_scaled), 
   prior(normal(0.25, 1), coef = yearly_rain_scaled:water_regimeseasonal),
   prior(normal(0.25, 1), coef = yearly_rain_lag_scaled:water_regimeseasonal),
-  prior(normal(-0.25, 1), coef = water_vislow),
-  prior(normal(0, 1), coef = water_vismixed),
-  prior(normal(0, 1), coef = water_visunknown)
+  prior(normal(0.25, 1), coef = proportion_high_water_vis),
+  prior(normal(0, 1), coef = proportion_na_water_vis)
+  # prior(normal(0, 1), coef = water_visunknown)
 )
 
 
@@ -39,7 +39,8 @@ mod.zi.no.salinity.linear <- brm(
        water_regime +
        yearly_rain_lag_scaled : water_regime +
        water_flow +
-       water_vis +
+       proportion_high_water_vis +
+       proportion_na_water_vis +
        (1 | Watershed/LocationID),
   data = scaled_between_year,  # run 4a to prep data file)
   family = zero_inflated_negbinomial(),
