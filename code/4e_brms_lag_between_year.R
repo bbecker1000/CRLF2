@@ -64,6 +64,8 @@ lag.zi.linear <- brm(
     water_regime +
     yearly_rain_lag_scaled : water_regime +
     water_flow +
+    proportion_high_water_vis +
+    proportion_na_water_vis +
     (1 | Watershed/LocationID),
   data = scaled_lag_between_year,  # run 4a to prep data file)
   family = zero_inflated_negbinomial(),
