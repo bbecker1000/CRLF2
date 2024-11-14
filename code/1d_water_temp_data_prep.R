@@ -4,8 +4,11 @@ library(tidyverse)
 library(ggplot2)
 library(lubridate)
 library(stringr)
+library(mgcv)
 
 setwd(here::here("code"))
+
+temp_threshold <- 9
 
 # importing water temperature data
 band_temps <- read_csv(here::here("data", "watertemp_banducci.csv")) %>% 
@@ -18,7 +21,11 @@ band_temps <- read_csv(here::here("data", "watertemp_banducci.csv")) %>%
   select(date, mean_temp) %>% 
   mutate(BRDYEAR = if_else(month(date) > 9, year(date) + 1, year(date)),
          beginning_WY = ymd(paste0(BRDYEAR - 1, "1001")),
-         day_number = as.numeric(date - beginning_WY))
+         day_number = as.numeric(date - beginning_WY),
+         degree_days = if_else(mean_temp > temp_threshold, (mean_temp - temp_threshold), 0)) %>% 
+  group_by(BRDYEAR) %>% 
+  mutate(cum_degree_days = cumsum(degree_days)) %>% 
+  ungroup()
 rodeo_temps <- read_csv(here::here("data", "watertemp_rodeo.csv")) %>% 
   mutate(timestamp = mdy_hm(timestamp),
          temperature = if_else(value > 30, ((value - 32) * (5/9)), (value))) %>% 
@@ -26,7 +33,14 @@ rodeo_temps <- read_csv(here::here("data", "watertemp_rodeo.csv")) %>%
   group_by(date) %>% 
   summarize(mean_temp = mean(temperature)) %>% 
   ungroup() %>% 
-  select(date, mean_temp)
+  select(date, mean_temp) %>% 
+  mutate(BRDYEAR = if_else(month(date) > 9, year(date) + 1, year(date)),
+         beginning_WY = ymd(paste0(BRDYEAR - 1, "1001")),
+         day_number = as.numeric(date - beginning_WY),
+         degree_days = if_else(mean_temp > temp_threshold, (mean_temp - temp_threshold), 0)) %>% 
+  group_by(BRDYEAR) %>% 
+  mutate(cum_degree_days = cumsum(degree_days)) %>% 
+  ungroup()
 
 
 # importing survey data
@@ -44,54 +58,65 @@ rodeo_surveys <- read_csv(here::here("data", "onset_of_breeding.csv")) %>%
   select(-MaxD, -MaxD_proportion, -MaxD_yearly, -WaterTemp, -AirTemp, -Watershed)
 
 
-# getting daily average temps, adding degree days
-# to calculate degree days, we want to add together all the days where
-# the temperature was above a certain threshold temperature
-
-for(temp_threshold in 7:11) {
-  band_temps <- band_temps %>% 
-    mutate(!!paste0("degree_days_", temp_threshold) := if_else(mean_temp > temp_threshold, (mean_temp - temp_threshold), 0)) %>% 
-    group_by(beginning_WY) %>% 
-    mutate(!!paste0("cum_degree_days_", temp_threshold) := cumsum(!!sym(paste0("degree_days_", temp_threshold)))) %>% 
-    ungroup()
-}
-
-for(temp_threshold in 7:11) {
-  rodeo_temps <- rodeo_temps %>% 
-    mutate(!!paste0("degree_days_", temp_threshold) := if_else(mean_temp > temp_threshold, (mean_temp - temp_threshold), 0),
-           BRDYEAR = if_else(month(date) > 9, year(date) + 1, year(date)),
-           beginning_WY = ymd(paste0(BRDYEAR - 1, "1001"))) %>% 
-    group_by(beginning_WY) %>% 
-    mutate(!!paste0("cum_degree_days_", temp_threshold) := cumsum(!!sym(paste0("degree_days_", temp_threshold)))) %>% 
-    ungroup()
-}
-
 # joining temperature data to breeding data
 band_breeding_degree_days <- band_temps %>% 
-  pivot_longer(cols = starts_with("cum_degree_days"), names_to = "temperature_threshold", values_to = "cum_degree_days") %>%
-  mutate(temperature_threshold = str_extract(temperature_threshold, "(?<=_)[^_]+$"),
-         temperature_threshold = factor(temperature_threshold, levels = c('7', '8', '9', '10', '11'))) %>% 
-  select(date, mean_temp, cum_degree_days, temperature_threshold) %>% 
-  inner_join(., band_surveys, by = join_by("date" == "breeding_date")) %>% 
-  mutate(date = as.POSIXct(date)) %>% 
-  group_by(temperature_threshold) %>% 
-  arrange(cum_degree_days) %>% 
-  mutate(proportion_breeding = cumsum(NumberofEggMasses) / sum(NumberofEggMasses))
-
+  select(date, mean_temp, cum_degree_days) %>% 
+  inner_join(., band_surveys, by = c("date" = "breeding_date")) %>% 
+  mutate(date = as.POSIXct(date))
 write_csv(band_breeding_degree_days, here::here("data", "banducci_degree_days.csv"))
 
 rodeo_breeding_degree_days <- rodeo_temps %>% 
-  pivot_longer(cols = starts_with("cum_degree_days"), names_to = "temperature_threshold", values_to = "cum_degree_days") %>%
-  mutate(temperature_threshold = str_extract(temperature_threshold, "(?<=_)[^_]+$"),
-         temperature_threshold = factor(temperature_threshold, levels = c('7', '8', '9', '10', '11'))) %>% 
-  select(date, mean_temp, cum_degree_days, temperature_threshold) %>% 
-  inner_join(., rodeo_surveys, by = join_by("date" == "breeding_date")) %>% 
-  mutate(date = as.POSIXct(date)) %>% 
-  group_by(temperature_threshold) %>% 
-  arrange(cum_degree_days) %>% 
-  mutate(proportion_breeding = cumsum(NumberofEggMasses) / sum(NumberofEggMasses))
-
+  select(date, mean_temp, cum_degree_days) %>% 
+  inner_join(., rodeo_surveys, by = c("date" = "breeding_date")) %>% 
+  mutate(date = as.POSIXct(date))
 write_csv(rodeo_breeding_degree_days, here::here("data", "rodeo_degree_days.csv"))
+
+
+#### adding GAM model here because I don't wanna make a separate file for it ####
+
+# scaling covariates
+
+scaled_within_year_band <- band_breeding_degree_days %>% 
+  mutate(
+    BRDYEAR_scaled = as.vector(scale(BRDYEAR)),
+    yearly_rain_scaled = as.vector(scale(yearly_rain)),
+    rain_to_date_scaled = as.vector(scale(rain_to_date)),
+    water_flow = as.factor(water_flow),
+    water_regime = as.factor(water_regime), 
+    cum_degree_days_scaled = as.vector(scale(cum_degree_days)),
+    mean_temp_scaled = as.vector(scale(mean_temp)))
+
+scaled_within_year_rodeo <- rodeo_breeding_degree_days %>% 
+  mutate(
+    BRDYEAR_scaled = as.vector(scale(BRDYEAR)),
+    yearly_rain_scaled = as.vector(scale(yearly_rain)),
+    rain_to_date_scaled = as.vector(scale(rain_to_date)),
+    water_flow = as.factor(water_flow),
+    water_regime = as.factor(water_regime), 
+    cum_degree_days_scaled = as.vector(scale(cum_degree_days)),
+    mean_temp_scaled = as.vector(scale(mean_temp)))
+
+# gam model -- banducci
+within_year_gam <- gam(first_breeding ~ 
+                         s(rain_to_date_scaled) +
+                         s(BRDYEAR_scaled) + 
+                         s(cum_degree_days_scaled),
+                       data = scaled_within_year_band)
+summary(within_year_gam)
+plot(within_year_gam)
+
+ggplot(scaled_within_year_band, aes(x = first_breeding, y = cum_degree_days_scaled)) + geom_point()
+
+# gam model -- rodeo
+within_year_gam <- gam(first_breeding ~ 
+                         s(rain_to_date_scaled) +
+                         s(BRDYEAR_scaled) +
+                         s(cum_degree_days_scaled),
+                       data = scaled_within_year_rodeo)
+summary(within_year_gam)
+plot(within_year_gam)
+
+ggplot(scaled_within_year_band, aes(x = first_breeding, y = cum_degree_days_scaled)) + geom_point()
 
 # plots disregarding year -- proportion of breeding for various thresholds
 band_degree_day_plot <- ggplot(data = band_breeding_degree_days, aes(x = cum_degree_days, y=  proportion_breeding)) +

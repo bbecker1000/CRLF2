@@ -19,6 +19,17 @@ location_type <- read_csv(here::here("data", "CRLF_tblLocations.csv")) %>%
     water_regime = WaterRegime
   ) %>% 
   mutate(water_regime = as.factor(water_regime), water_flow = as.factor(water_flow))
+# sun hours data
+sun_hours <- read_csv(here::here("data", "Sun_Hours_WY2024.csv")) %>% 
+  mutate(str_time = substr(str_time, 1, 10),
+         str_time = ymd(str_time),
+         BRDYEAR = if_else(month(str_time) > 9, year(str_time) + 1, year(str_time)),
+         beginning_WY = ymd(paste0(BRDYEAR - 1, "1001")),
+         day_number = as.numeric(str_time - beginning_WY)) %>% 
+  select(-OBJECTID, -global_ave, -direct_ave, -diff_ave, -BRDYEAR) %>% 
+  group_by(LocationID) %>% 
+  mutate(cum_sun_hours = cumsum(dir_dur)) %>% 
+  ungroup()
 
 #### DATA CLEANING ####
 
@@ -219,6 +230,9 @@ onset_of_breeding <- cbind(temp_daily_rain_table, rain_to_date_col) %>% select(-
   slice(1) %>% 
   rename(first_breeding = dayOfWY)
 
+between_year_with_sun_hours <- left_join(onset_of_breeding, sun_hours, by = c("LocationID" = "LocationID", "first_breeding" = "day_number")) %>% 
+  select(-beginning_WY, -str_time)
+
 # write to CSV
-write_csv(onset_of_breeding, here::here("data", "onset_of_breeding.csv"))
+write_csv(between_year_with_sun_hours, here::here("data", "onset_of_breeding.csv"))
 

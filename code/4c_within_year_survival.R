@@ -29,8 +29,9 @@ scaled_within_year <- onset_of_breeding_surv %>%
     water_flow = as.factor(water_flow),
     water_regime = as.factor(water_regime), 
     Watershed = as.factor(Watershed),
-    LocationID = as.factor(LocationID)
-  ) %>% 
+    LocationID = as.factor(LocationID),
+    cum_sun_hours_scaled = as.vector(scale(cum_sun_hours)),
+    dir_dur_scaled = as.vector(scale(dir_dur))) %>% 
   select(-MaxD, -MaxD_yearly, -MaxD_proportion, -NumberofEggMasses)
 
 # creating a "complete case" column
@@ -48,11 +49,17 @@ within_year_gam <- gam(first_breeding ~
                  s(max_depth_scaled) +
                  water_flow +
                  # water_regime +
+                 cum_sun_hours_scaled +
+                 # dir_dur_scaled +
                  s(LocationID, Watershed, bs = "re"),
-               data = scaled_within_year)
+               data = complete_onset)
 summary(within_year_gam)
 plot(within_year_gam)
 AIC(within_year_gam)
+
+ggplot(complete_onset, aes(x = first_breeding, y = dir_dur)) + geom_point()
+
+ggplot(complete_onset, aes(x = first_breeding, y = cum_sun_hours)) + geom_point()
 
 library(gam.hp)
 gam.hp(mod=within_year_gam,type="dev")
