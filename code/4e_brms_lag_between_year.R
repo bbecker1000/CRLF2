@@ -78,3 +78,4 @@ lag.zi.linear <- brm(
 summary(lag.zi.linear, prob = 0.89)
 
 #### plots ####
+conditional_effects(lag.zi.linear, surface = FALSE, prob = 0.89)
