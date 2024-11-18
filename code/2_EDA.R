@@ -2,6 +2,25 @@ library(ggplot2)
 setwd(here::here("code"))
 source("1_data_prep.R")
 
+# plotting number of eggs seen by water visibility
+
+data_wv <- data %>% 
+  mutate(WaterVis = as.factor(if_else(WaterVis >= 0.3, "high", "low", missing = "missing"))) %>% 
+  group_by(WaterVis) %>% 
+  summarize(avg_num_egg_masses = mean(NumberofEggMasses))
+
+vis_plot <- ggplot(data = data_wv, aes(x = WaterVis, y = avg_num_egg_masses)) + geom_bar(position = "dodge", stat = "identity")
+
+data_na_count <- data %>% 
+  summarize(NA_open_water = sum(is.na(ground_open_water)),
+            NA_emergent_cover = sum(is.na(ground_emerg)),
+            NA_submergent_cover = sum(is.na(ground_sub)),
+            NA_water_temp = sum(is.na(WaterTemp)),
+            NA_water_depth_max = sum(is.na(MaxD)),
+            NA_water_depth_avg = sum(is.na(AvgD)),
+            NA_water_vis = sum(is.na(WaterVis)),
+            NA_salinity = sum(is.na(WaterSalinity)))
+
 ### ~~~ *** DATA MANIPULATION (tables that are helpful for creating many graphs) *** ~~~ ###
 
 #summary information of new egg masses count
