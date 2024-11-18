@@ -5,6 +5,7 @@ library(ggplot2)
 library(lubridate)
 library(stringr)
 library(mgcv)
+library(lme4)
 
 setwd(here::here("code"))
 
@@ -71,12 +72,13 @@ rodeo_breeding_degree_days <- rodeo_temps %>%
   mutate(date = as.POSIXct(date))
 write_csv(rodeo_breeding_degree_days, here::here("data", "rodeo_degree_days.csv"))
 
+breeding_degree_days_combined <- rbind(band_breeding_degree_days, rodeo_breeding_degree_days)
 
 #### adding GAM model here because I don't wanna make a separate file for it ####
 
 # scaling covariates
 
-scaled_within_year_band <- band_breeding_degree_days %>% 
+scaled_within_year_dd <- breeding_degree_days_combined %>% 
   mutate(
     BRDYEAR_scaled = as.vector(scale(BRDYEAR)),
     yearly_rain_scaled = as.vector(scale(yearly_rain)),
@@ -86,35 +88,18 @@ scaled_within_year_band <- band_breeding_degree_days %>%
     cum_degree_days_scaled = as.vector(scale(cum_degree_days)),
     mean_temp_scaled = as.vector(scale(mean_temp)))
 
-scaled_within_year_rodeo <- rodeo_breeding_degree_days %>% 
-  mutate(
-    BRDYEAR_scaled = as.vector(scale(BRDYEAR)),
-    yearly_rain_scaled = as.vector(scale(yearly_rain)),
-    rain_to_date_scaled = as.vector(scale(rain_to_date)),
-    water_flow = as.factor(water_flow),
-    water_regime = as.factor(water_regime), 
-    cum_degree_days_scaled = as.vector(scale(cum_degree_days)),
-    mean_temp_scaled = as.vector(scale(mean_temp)))
-
-# gam model -- banducci
-within_year_gam <- gam(first_breeding ~ 
-                         s(rain_to_date_scaled) +
-                         s(BRDYEAR_scaled) + 
-                         s(cum_degree_days_scaled),
-                       data = scaled_within_year_band)
-summary(within_year_gam)
-plot(within_year_gam)
+# glm model
+within_year_glm <- lmer(first_breeding ~ 
+                         rain_to_date_scaled +
+                         BRDYEAR_scaled + 
+                         cum_degree_days_scaled +
+                         (1 | LocationID),
+                       data = scaled_within_year_dd)
+summary(within_year_glm)
+plot(within_year_glm)
 
 ggplot(scaled_within_year_band, aes(x = first_breeding, y = cum_degree_days_scaled)) + geom_point()
 
-# gam model -- rodeo
-within_year_gam <- gam(first_breeding ~ 
-                         s(rain_to_date_scaled) +
-                         s(BRDYEAR_scaled) +
-                         s(cum_degree_days_scaled),
-                       data = scaled_within_year_rodeo)
-summary(within_year_gam)
-plot(within_year_gam)
 
 ggplot(scaled_within_year_band, aes(x = first_breeding, y = cum_degree_days_scaled)) + geom_point()
 
