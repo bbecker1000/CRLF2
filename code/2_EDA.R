@@ -11,6 +11,22 @@ data_wv <- data %>%
 
 vis_plot <- ggplot(data = data_wv, aes(x = WaterVis, y = avg_num_egg_masses)) + geom_bar(position = "dodge", stat = "identity")
 
+# visualizing the variability in water visibility within sites
+
+wv_var <- data %>% 
+  select(LocationID, BRDYEAR, WaterVis, WaterVis_continuous, NumberofEggMasses) %>% 
+  group_by(LocationID) %>% 
+  mutate(id = row_number())
+
+wv_var_plot <- ggplot(wv_var, aes(x = id, y = WaterVis_continuous)) + geom_point(aes(color = NumberofEggMasses)) +
+  facet_wrap(~LocationID, scales = "free_x") +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+
+# might be interesting to look at whether this is related to number of egg masses found?
+
+# generates table of number of NA values for each covariate
 data_na_count <- data %>% 
   summarize(NA_open_water = sum(is.na(ground_open_water)),
             NA_emergent_cover = sum(is.na(ground_emerg)),

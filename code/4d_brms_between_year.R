@@ -46,8 +46,8 @@ mod.zi.no.salinity.linear <- brm(
   family = zero_inflated_negbinomial(),
   prior = bprior.no.sal.linear.zi,
   chains = 3, cores = 3,
-  iter = 11000, # 11500, # only need about 500 for inference
-  warmup = 10500, #11000, 
+  iter = 11500, # 11500, # only need about 500 for inference
+  warmup = 11000, #11000, 
   control = list(adapt_delta = 0.97))
 
 

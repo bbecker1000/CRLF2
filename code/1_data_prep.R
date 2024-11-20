@@ -76,6 +76,7 @@ unfiltered_data <- raw_data %>% select(-ParkCode, -ProjectCode, -BTime, -TTime, 
     mean_percent_emerg = if_else(ground_percent_cover_validation == TRUE, if_else(interpolated_percent_cover_validation, mean(c_across(all_of(c("ground_emerg", "interpolated_emerg"))), na.rm = TRUE), ground_emerg), interpolated_emerg),
     mean_percent_water = if_else(ground_percent_cover_validation == TRUE, if_else(interpolated_percent_cover_validation, mean(c_across(all_of(c("ground_open_water", "interpolated_openwater"))), na.rm = TRUE), ground_open_water), interpolated_openwater),
     LocationID = as.factor(LocationID),
+    WaterVis_continuous = WaterVis,
     WaterVis = as.integer(if_else(is.na(WaterVis), NA, if_else(WaterVis < 0.3, 0, 1)))
   )
 
@@ -95,6 +96,11 @@ data <- unfiltered_data %>%
   #          Watershed == "Redwood Creek" | Watershed == "Rodeo Lagoon" | Watershed=="Tennessee Valley" |
   #          Watershed == "Wilkins Gulch") %>%
   # filter(BRDYEAR > 2009) %>%
+  group_by(EventGUID) %>% 
+  mutate(NumberofEggMasses = sum(NumberofEggMasses)) %>% 
+  ungroup() %>% 
+  select(-EggCountGUID, -MassID) %>% 
+  distinct(EventGUID, .keep_all = TRUE)  %>% 
   mutate(
     Watershed = droplevels(Watershed),
     LocationID = droplevels(LocationID)
