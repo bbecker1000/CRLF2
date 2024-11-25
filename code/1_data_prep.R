@@ -214,31 +214,46 @@ between_year_data_for_cover_comparison <- data %>%
 
 #### ~~~ *** WITHIN YEAR DATA *** ~~~ ####
 
-temp_daily_rain_table <- left_join(data, rainfall_daily, by = c("BRDYEAR" = "Water_Year")) %>%
-  mutate(across(starts_with("day_"), as.numeric))
+# getting rain to date for each day of the water year for every year
+rainfall_daily_transposed <- as.data.frame(t(rainfall_daily))
+colnames(rainfall_daily_transposed) <- as.character(rainfall_daily_transposed[1,])
+rainfall_daily_transposed <- rainfall_daily_transposed[-1,]
 
-rain_to_date_col <- data.frame(matrix(nrow = nrow(temp_daily_rain_table), ncol = 1))
-for (i in 1:nrow(temp_daily_rain_table)) {
-  dayOfWY <- temp_daily_rain_table$dayOfWY[i]
-  daysToSum <- select(temp_daily_rain_table[i , ], starts_with("day_"))[ , 1:(dayOfWY + 1)]
-  rain_to_date_col[i, 1] <- sum(daysToSum)
+for(i in 1:ncol(rainfall_daily_transposed)) {
+  x <- rainfall_daily_transposed[,i]
+  rainfall_daily_transposed[,i] <- cumsum(x)
 }
 
-colnames(rain_to_date_col) <- c("rain_to_date")
-
-onset_of_breeding <- cbind(temp_daily_rain_table, rain_to_date_col) %>% select(-starts_with("day_")) %>% 
-  select(LocationID, BRDYEAR, Watershed, dayOfWY, rain_to_date, MaxD, NumberofEggMasses, yearly_rain, yearly_rain_lag, AirTemp, WaterTemp, water_flow, water_regime, WaterVis, DrySurvey) %>% 
+# getting first breeding entries for each site and year
+onset_of_breeding <- data %>% 
+  select(LocationID, BRDYEAR, dayOfWY, NumberofEggMasses, yearly_rain, yearly_rain_lag, water_flow, water_regime) %>% 
   group_by(BRDYEAR, LocationID) %>% 
   filter(NumberofEggMasses > 0) %>% 
-  mutate(MaxD_yearly = if_else(all(is.na(MaxD)), NA, mean(MaxD, na.rm = TRUE)),
-         MaxD_proportion = if_else(!is.na(MaxD), MaxD/MaxD_yearly, NA)) %>% 
   arrange(BRDYEAR, LocationID, dayOfWY) %>% 
   slice(1) %>% 
-  rename(first_breeding = dayOfWY)
+  mutate(first_breeding = dayOfWY) %>% 
+  mutate(rain_to_date = NA) %>% 
+  group_by(BRDYEAR, LocationID) %>% 
+  uncount(dayOfWY + 1, .id = "dayOfWY") %>% 
+  mutate(dayOfWY = dayOfWY - 1, # need to zero index day of water year to match
+         breeding_status = if_else(first_breeding == dayOfWY, 1, 0))  
 
-between_year_with_sun_hours <- left_join(onset_of_breeding, sun_hours, by = c("LocationID" = "LocationID", "first_breeding" = "day_number")) %>% 
+for (i in 1:nrow(onset_of_breeding)) {
+  row <- onset_of_breeding[i,]
+  day_of_wy <- as.numeric(row$dayOfWY)
+  year <- as.character(row$BRDYEAR)
+  y <- c(paste0("day_", day_of_wy))
+  z <- rainfall_daily_transposed[rownames(rainfall_daily_transposed) %in% y, ][year]
+  onset_of_breeding$rain_to_date[i] <- z
+}
+
+onset_of_breeding <- onset_of_breeding %>% 
+  mutate(rain_to_date = as.numeric(rain_to_date))
+
+# adding sun hours
+within_year_with_sun_hours <- left_join(onset_of_breeding, sun_hours, by = c("LocationID" = "LocationID", "dayOfWY" = "day_number")) %>% 
   select(-beginning_WY, -str_time)
 
 # write to CSV
-write_csv(between_year_with_sun_hours, here::here("data", "onset_of_breeding.csv"))
+write_csv(within_year_with_sun_hours, here::here("data", "onset_of_breeding.csv"))
 
