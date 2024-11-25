@@ -79,3 +79,9 @@ summary(lag.zi.linear, prob = 0.89)
 
 #### plots ####
 conditional_effects(lag.zi.linear, surface = FALSE, prob = 0.89)
+
+# Try using the package sjPlot and function plot_model(MODELNAME, type = “eff”, terms = c(“TERM1”, “TERM2…)
+# Also try type = “int”
+library(sjPlot)
+plot_model(lag.zi.linear, type = "eff", terms = c("yearly_rain_scaled [all]", "water_regime"))
+                                                     
