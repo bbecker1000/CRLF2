@@ -1,5 +1,6 @@
 library(brms)
 library(lme4)
+library(marginaleffects)
 
 scaled_between_year <- read_csv(here::here("data", "scaled_between_year.csv"))
 
@@ -50,11 +51,55 @@ mod.zi.no.salinity.linear <- brm(
   warmup = 11000, #11000, 
   control = list(adapt_delta = 0.97))
 
-
-
 summary(mod.zi.no.salinity.linear, prob = 0.89)
 
 ##### plots: mod.zi.no.salinity.linear #####
+# using marginaleffects
+plot_predictions(mod.zi.no.salinity.linear, by = "BRDYEAR_scaled", conf_level = 0.89)
+
+pred <- predictions(mod.zi.no.salinity.linear, conf_level = 0.89, type = "prediction", ndraws = 10, re_formula = NA)
+pred <- get_draws(pred)
+
+write_csv(pred, here::here("data", "pred.csv"))
+
+# color palette because i want the plots to look pretty
+main_color <- "#CC5803"
+background <- "#FF9505"
+background2 <- "#FFB627"
+
+# canopy -- significant
+canopy_plot <- ggplot(pred, aes(x = interpolated_canopy_scaled, y = estimate)) +
+  scale_y_continuous(limits = c(0, 75)) +
+  theme_bw() +
+  # geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2) +
+  geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
+  geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
+  geom_point(aes(y = num_egg_masses), color = background, alpha = 0.035) +
+  geom_line(stat = "smooth", color = main_color, size = 1.5) 
+
+# percent open water -- significant
+water_plot <- ggplot(pred, aes(x = mean_percent_water_scaled, y = estimate)) +
+  scale_y_continuous(limits = c(0, 75)) +
+  theme_bw() +
+  # geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2) +
+  geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
+  geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
+  geom_point(aes(y = num_egg_masses), color = background, alpha = 0.035) +
+  geom_line(stat = "smooth", color = main_color, size = 1.5) 
+
+# BRDYEAR -- almost significant
+year_plot <- ggplot(pred, aes(x = BRDYEAR_scaled, y = estimate)) +
+  scale_y_continuous(limits = c(0, 75)) +
+  theme_bw() +
+  # geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2) +
+  geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
+  geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
+  geom_point(aes(y = num_egg_masses), color = background, alpha = 0.035) +
+  geom_line(stat = "smooth", color = main_color, size = 1.5) 
+
+plot_grid(canopy_plot, water_plot, year_plot, nrow = 3)
+
+# geom_smooth()# using sjPlot
 conditional_effects(mod.zi.no.salinity.linear, surface = FALSE, prob = 0.89)
 
 library(bayesplot)
