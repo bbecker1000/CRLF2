@@ -90,26 +90,41 @@ cox_model <- coxph(Surv(dayOfWY, breeding_status) ~
                      rain_to_date_scaled, 
                    data = complete_onset)
 
-# no random effects: rain to date + cumulative sun hours
-cox_model <- coxph(Surv(dayOfWY, breeding_status) ~ 
-                     rain_to_date_scaled + 
-                     cum_sun_hours_scaled, 
-                   data = complete_onset)
-
 # univariate: locationID
 cox_model <- coxph(Surv(dayOfWY, breeding_status) ~ 
                      LocationID, 
                    data = complete_onset)
 
-# multivariate with random effects: rain to date and cumulative sun hours
-cox_model <- coxme(Surv(dayOfWY, breeding_status) ~ 
-                     # BRDYEAR_scaled + 
+
+
+# no random effects: rain to date + cumulative sun hours
+cox_model_no_random <- coxph(Surv(dayOfWY, breeding_status) ~ 
+                     rain_to_date_scaled + 
+                     cum_sun_hours_scaled, 
+                   data = complete_onset)
+
+summary(cox_model_no_random)
+cox.zph(cox_model_no_random)
+
+# frailty effect: rain to date + cumulative sun hours
+cox_model_frailty <- coxph(Surv(dayOfWY, breeding_status) ~ 
+                     rain_to_date_scaled + 
+                     cum_sun_hours_scaled +
+                     frailty(LocationID), 
+                   data = complete_onset)
+
+summary(cox_model_frailty)
+cox.zph(cox_model_frailty)
+
+# coxme with random effects: rain to date + cumulative sun hours
+coxme_model <- coxme(Surv(dayOfWY, breeding_status) ~ 
                      rain_to_date_scaled +
                      cum_sun_hours_scaled +
-                     # water_flow +
-                     # water_regime +
                      (1 | LocationID),
                    data = complete_onset)
+
+summary(coxme_model)
+cox.zph(coxme_model)
 
 # summary of model
 summary(cox_model)
