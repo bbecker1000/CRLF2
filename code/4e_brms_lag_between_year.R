@@ -75,7 +75,7 @@ lag.zi.linear <- brm(
   warmup = 4500, #11000, 
   control = list(adapt_delta = 0.97))
 
-summary(lag.zi.linear, prob = 0.89)
+summary(lag.zi.linear, prob = 0.89) # year and canopy sig! Nov 20, 2024
 
 #### plots ####
 conditional_effects(lag.zi.linear, surface = FALSE, prob = 0.89)
@@ -83,5 +83,14 @@ conditional_effects(lag.zi.linear, surface = FALSE, prob = 0.89)
 # Try using the package sjPlot and function plot_model(MODELNAME, type = “eff”, terms = c(“TERM1”, “TERM2…)
 # Also try type = “int”
 library(sjPlot)
-plot_model(lag.zi.linear, type = "eff", terms = c("yearly_rain_scaled [all]", "water_regime"))
-                                                     
+plot_model(lag.zi.linear, type = "pred", term="BRDYEAR_scaled")
+plot_model(lag.zi.linear, type = "pred", term="interpolated_canopy_scaled")
+plot_model(lag.zi.linear, type = "pred", term="yearly_rain_lag_scaled")
+plot_model(lag.zi.linear, type = "pred", term="water_regime")
+
+plot_model(lag.zi.linear, type = "int", mdrt.values = "meansd")    
+
+library(marginaleffects)
+plot_predictions(lag.zi.linear, by = "BRDYEAR_scaled") 
+
+            
