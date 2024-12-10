@@ -14,12 +14,12 @@ vis_plot <- ggplot(data = data_wv, aes(x = WaterVis, y = avg_num_egg_masses)) + 
 # visualizing the variability in water visibility within sites
 
 wv_var <- data %>% 
-  select(LocationID, BRDYEAR, WaterVis, WaterVis_continuous, NumberofEggMasses) %>% 
+  select(Watershed, LocationID, BRDYEAR, WaterVis, WaterVis_continuous, NumberofEggMasses) %>% 
   group_by(LocationID) %>% 
   filter(!is.na(WaterVis_continuous))
 
 wv_var_plot <- ggplot(wv_var, aes(x = LocationID, y = WaterVis_continuous)) + 
-  geom_jitter(alpha = 0.2, color = "darkblue") +
+  geom_jitter(alpha = 0.2, aes(color = Watershed)) +
   geom_boxplot(alpha = 0.8) +
   theme_bw()+
   labs(y = "Water Visibility (feet)", x = "Site")

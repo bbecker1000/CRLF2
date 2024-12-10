@@ -9,7 +9,7 @@ library(cowplot)
 #### prepping data for analysis ####
 setwd(here::here("code"))
 #rename file
-onset_of_breeding_surv <- read_csv(here::here("data", "onset_of_breeding.csv"))
+onset_of_breeding_surv <- read_csv(here::here("data", "onset_of_breeding_gam.csv"))
 
 # scaling covariates
 scaled_within_year <- onset_of_breeding_surv %>% 
@@ -17,16 +17,16 @@ scaled_within_year <- onset_of_breeding_surv %>%
     BRDYEAR_scaled = as.vector(scale(BRDYEAR)),
     yearly_rain_scaled = as.vector(scale(yearly_rain)),
     rain_to_date_scaled = as.vector(scale(rain_to_date)),
-    max_depth_scaled = as.vector(scale(MaxD_proportion)),
-    AirTemp_scaled = as.vector(scale(AirTemp)),
-    WaterTemp_scaled = as.vector(scale(WaterTemp)), 
+    # max_depth_scaled = as.vector(scale(MaxD_proportion)),
+    # AirTemp_scaled = as.vector(scale(AirTemp)),
+    # WaterTemp_scaled = as.vector(scale(WaterTemp)), 
     water_flow = as.factor(water_flow),
     water_regime = as.factor(water_regime), 
     Watershed = as.factor(Watershed),
     LocationID = as.factor(LocationID),
     cum_sun_hours_scaled = as.vector(scale(cum_sun_hours)),
     dir_dur_scaled = as.vector(scale(dir_dur))) %>% 
-  select(-MaxD, -MaxD_yearly, -MaxD_proportion, -NumberofEggMasses)
+  select(-NumberofEggMasses)
 
 # creating a "complete case" column
 scaled_within_year$complete_case <- complete.cases(scaled_within_year)
@@ -35,12 +35,12 @@ complete_onset <- scaled_within_year %>% filter(complete_case == TRUE) %>% selec
 #### *** GAM MODEL *** ####
 #Generative additive model: first look at onset of breeding with fixed variables
 #respectively, and plot to see is the line looks linear or curve.
-within_year_gam <- gam(first_breeding ~ 
+within_year_gam <- gam(dayOfWY ~ 
                          s(rain_to_date_scaled, by = water_regime) +
-                         s(AirTemp_scaled) +
-                         s(WaterTemp_scaled) +
+                         # s(AirTemp_scaled) +
+                         # s(WaterTemp_scaled) +
                          s(BRDYEAR_scaled) + 
-                         s(max_depth_scaled) +
+                         # s(max_depth_scaled) +
                          water_flow +
                          # water_regime +
                          cum_sun_hours_scaled +
