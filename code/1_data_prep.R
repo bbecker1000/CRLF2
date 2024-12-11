@@ -246,7 +246,7 @@ for(i in 1:ncol(rainfall_daily_transposed)) {
 
 # getting first breeding entries for each site and year
 onset_of_breeding <- data %>% 
-  select(LocationID, BRDYEAR, dayOfWY, NumberofEggMasses, yearly_rain, yearly_rain_lag, water_flow, water_regime) %>% 
+  select(LocationID, Watershed, BRDYEAR, dayOfWY, NumberofEggMasses, yearly_rain, yearly_rain_lag, water_flow, water_regime) %>% 
   group_by(BRDYEAR, LocationID) %>% 
   filter(NumberofEggMasses > 0) %>% 
   arrange(BRDYEAR, LocationID, dayOfWY) %>% 

@@ -124,14 +124,14 @@ coxme_model <- coxme(Surv(dayOfWY, breeding_status) ~
                    data = complete_onset)
 
 summary(coxme_model)
+print(coxme_model)
 cox.zph(coxme_model)
 
 # summary of model
-summary(cox_model)
 
 # testing assumptions
 # to use the cox model, results of test_assumptions must not be significant
-test_cox <- cox.zph(cox_model)
+test_cox <- cox.zph(coxme_model)
 test_cox
 ggcoxzph(test_cox)
 print(test_cox)
@@ -141,7 +141,10 @@ ggcoxdiagnostics(cox_model, linear.predictions = TRUE)
 
 
 #### plot model -- forest plot (this one works!) ####
-coefficients <- as.data.frame(summary(cox_model)$coefficients) %>% 
+
+coef <- fixef(coxme_model)
+
+coefficients <- as.data.frame(summary(coxme_model)$coefficients) %>% 
   rename(
     `estimate` = `exp(coef)`,
     `se` = `se(coef)`
