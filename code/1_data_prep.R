@@ -172,6 +172,26 @@ scaled_between_year <- between_year_data %>%
           WaterTemp_scaled = as.vector(scale(WaterTemp)),
           yearly_rain_lag_scaled = as.vector(scale(yearly_rain_lag)))
 
+# for unscaling later
+col_means <- between_year_data %>% 
+  filter(complete_case == TRUE) %>%
+  select(-Watershed, -LocationID, -dry_year, -CoastalSite, -water_flow, -water_regime, -complete_case) %>% 
+  colMeans() %>% 
+  t() %>% 
+  as.data.frame()
+
+write_csv(col_means, here::here("data", "between_year_col_means.csv"))
+
+col_sd <- between_year_data %>% 
+  filter(complete_case == TRUE) %>%
+  select(-Watershed, -LocationID, -dry_year, -CoastalSite, -water_flow, -water_regime, -complete_case) %>% 
+  apply(., 2, sd) %>% 
+  t() %>% 
+  as.data.frame()
+
+write_csv(col_sd, here::here("data", "between_year_col_sd.csv"))
+
+
 # if we want to include lagged egg masses, this is the code to do so
 # holding off for now because it produces so many NA's
 between_year_data_lagged <- scaled_between_year %>%

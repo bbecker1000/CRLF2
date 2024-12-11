@@ -49,9 +49,10 @@ mod.zi.no.salinity.linear <- brm(
   chains = 3, cores = 3,
   iter = 11500, # 11500, # only need about 500 for inference
   warmup = 11000, #11000, 
-  control = list(adapt_delta = 0.97))
+  control = list(adapt_delta = 0.99))
 
 summary(mod.zi.no.salinity.linear, prob = 0.89)
+
 
 ##### plots: mod.zi.no.salinity.linear #####
 # using marginaleffects
@@ -62,42 +63,59 @@ pred <- get_draws(pred)
 
 write_csv(pred, here::here("data", "pred.csv"))
 
+# trying to unscale response variables for plotting
+col_means <- read_csv(here::here("data", "between_year_col_means.csv"))
+col_sd <- read_csv(here::here("data", "between_year_col_sd.csv"))
+pred_unscaled <- pred %>% 
+  mutate(
+    interpolated_canopy_unscaled = (interpolated_canopy_scaled * col_sd$interpolated_canopy) + col_means$interpolated_canopy,
+    BRDYEAR_unscaled = (BRDYEAR_scaled * col_sd$BRDYEAR) + col_means$BRDYEAR,
+    mean_percent_water_unscaled = (mean_percent_water_scaled * col_sd$mean_percent_water) + col_means$mean_percent_water
+  )
+
 # color palette because i want the plots to look pretty
 main_color <- "#CC5803"
 background <- "#FF9505"
 background2 <- "#FFB627"
 
+# OR
+main_color <- "#0B5563"
+background <- "#5299D3"
+background2 <- "#BEB8EB"
+
 # canopy -- significant
-canopy_plot <- ggplot(pred, aes(x = interpolated_canopy_scaled, y = estimate)) +
-  scale_y_continuous(limits = c(0, 75)) +
+canopy_plot <- ggplot(pred_unscaled, aes(x = interpolated_canopy_unscaled, y = estimate)) +
+  scale_y_continuous(limits = c(0, 200)) +
   theme_bw() +
   # geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2) +
   geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
   geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
   geom_point(aes(y = num_egg_masses), color = background, alpha = 0.035) +
-  geom_line(stat = "smooth", color = main_color, size = 1.5) 
+  geom_line(stat = "smooth", color = main_color, linewidth = 1.5) +
+  labs(x = "Percent canopy cover", y = "Number of egg masses")
 
 # percent open water -- significant
-water_plot <- ggplot(pred, aes(x = mean_percent_water_scaled, y = estimate)) +
-  scale_y_continuous(limits = c(0, 75)) +
+water_plot <- ggplot(pred_unscaled, aes(x = mean_percent_water_unscaled, y = estimate)) +
+  scale_y_continuous(limits = c(0, 200)) +
   theme_bw() +
   # geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2) +
   geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
   geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
   geom_point(aes(y = num_egg_masses), color = background, alpha = 0.035) +
-  geom_line(stat = "smooth", color = main_color, size = 1.5) 
+  geom_line(stat = "smooth", color = main_color, linewidth = 1.5) +
+  labs(x = "Percent open water cover", y = "Number of egg masses")
 
-# BRDYEAR -- almost significant
-year_plot <- ggplot(pred, aes(x = BRDYEAR_scaled, y = estimate)) +
-  scale_y_continuous(limits = c(0, 75)) +
+plot_grid(canopy_plot, water_plot, nrow = 1)
+
+# BRDYEAR -- almost significant, nice to see trends over time
+year_plot <- ggplot(pred_unscaled, aes(x = BRDYEAR_unscaled, y = estimate)) +
+  scale_y_continuous(limits = c(0, 200)) +
   theme_bw() +
-  # geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2) +
   geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
   geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
   geom_point(aes(y = num_egg_masses), color = background, alpha = 0.035) +
-  geom_line(stat = "smooth", color = main_color, size = 1.5) 
-
-plot_grid(canopy_plot, water_plot, year_plot, nrow = 3)
+  geom_line(stat = "smooth", color = main_color, linewidth = 1.5) +
+  labs(x = "Water year", y = "Number of egg masses")
 
 # geom_smooth()# using sjPlot
 conditional_effects(mod.zi.no.salinity.linear, surface = FALSE, prob = 0.89)
