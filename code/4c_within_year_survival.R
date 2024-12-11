@@ -120,7 +120,7 @@ cox.zph(cox_model_frailty)
 coxme_model <- coxme(Surv(dayOfWY, breeding_status) ~ 
                      rain_to_date_scaled +
                      cum_sun_hours_scaled +
-                     (1 | LocationID),
+                     (1 | Watershed),
                    data = complete_onset)
 
 summary(coxme_model)
@@ -146,19 +146,18 @@ coef <- fixef(coxme_model)
 
 coefficients <- as.data.frame(summary(coxme_model)$coefficients) %>% 
   rename(
-    `estimate` = `exp(coef)`,
+    `hazard_ratio` = `exp(coef)`,
     `se` = `se(coef)`
+  ) %>% 
+  mutate(
+    lower_ci = exp(coef - 1.96*se),
+    upper_ci = exp(coef + 1.96*se),
+    cov = c("Cumulative Rainfall", "Cumulative Sunlight Hours")
   )
-plot_data <- data.frame(
-  covariate = rownames(coefficients),
-  hazard_ratio = coefficients$estimate,
-  lower_CI = coefficients$estimate - (1.96 * coefficients$se),
-  upper_CI = coefficients$estimate + (1.96 * coefficients$se)
-)
 
-ggplot(plot_data, aes(x = hazard_ratio, y = covariate)) +
+ggplot(coefficients, aes(x = hazard_ratio, y = cov)) +
   geom_vline(xintercept = 1, linetype = "dashed", color = "red") +
-  geom_errorbarh(aes(xmin = lower_CI, xmax = upper_CI), height = 0) +
+  geom_errorbarh(aes(xmin = lower_ci, xmax = upper_ci), height = 0) +
   geom_point() +
-  labs(x = "Hazard Ratio", y = "Covariate", title = "Coefficient Estimates") +
+  labs(x = "Hazard Ratio", y = "Covariate") +
   theme_minimal()
