@@ -11,6 +11,8 @@ library(nlme)
 library(gratia)
 library(ggplot2)
 library(cowplot)
+library(riskRegression)
+library(adjustedCurves)
 
 #### prepping data for analysis ####
 setwd(here::here("code"))
@@ -26,14 +28,27 @@ scaled_within_year <- onset_of_breeding_surv %>%
     water_flow = as.factor(water_flow),
     water_regime = as.factor(water_regime), 
     LocationID = as.factor(LocationID),
+    Watershed = as.factor(Watershed),
     cum_sun_hours_scaled = as.vector(scale(cum_sun_hours)),
     dir_dur_scaled = as.vector(scale(dir_dur))) %>% 
+  select(-NumberofEggMasses)
+
+# for unscaled data
+unscaled_within_year <- onset_of_breeding_surv %>% 
+  mutate(
+    water_flow = as.factor(water_flow),
+    water_regime = as.factor(water_regime), 
+    LocationID = as.factor(LocationID),
+    Watershed = as.factor(Watershed)) %>% 
   select(-NumberofEggMasses)
 
 # creating a "complete case" column
 scaled_within_year$complete_case <- complete.cases(scaled_within_year)
 complete_onset <- scaled_within_year %>% filter(complete_case == TRUE) %>% select(-complete_case)
 
+# run only these lines to prep data for unscaled models
+unscaled_within_year$complete_case <- complete.cases(unscaled_within_year)
+complete_onset <- unscaled_within_year %>% filter(complete_case == TRUE) %>% select(-complete_case)
 #### *** SURVIVAL MODELS *** ####
 
 #intercept model of the mean
@@ -85,26 +100,13 @@ ggsurvplot(
 #### *** COX MODELS *** ####
 
 ## choose one
-# univariate: rain to date
-cox_model <- coxph(Surv(dayOfWY, breeding_status) ~ 
-                     rain_to_date_scaled, 
-                   data = complete_onset)
-
-# univariate: locationID
-cox_model <- coxph(Surv(dayOfWY, breeding_status) ~ 
-                     LocationID, 
-                   data = complete_onset)
-
-
-
 # no random effects: rain to date + cumulative sun hours
 cox_model_no_random <- coxph(Surv(dayOfWY, breeding_status) ~ 
-                     rain_to_date_scaled + 
-                     cum_sun_hours_scaled, 
+                     rain_to_date + 
+                     cum_sun_hours + 
+                     strata(Watershed), 
                    data = complete_onset)
-
 summary(cox_model_no_random)
-cox.zph(cox_model_no_random)
 
 # frailty effect: rain to date + cumulative sun hours
 cox_model_frailty <- coxph(Surv(dayOfWY, breeding_status) ~ 
@@ -112,32 +114,30 @@ cox_model_frailty <- coxph(Surv(dayOfWY, breeding_status) ~
                      cum_sun_hours_scaled +
                      frailty(LocationID), 
                    data = complete_onset)
-
 summary(cox_model_frailty)
-cox.zph(cox_model_frailty)
 
 # coxme with random effects: rain to date + cumulative sun hours
 coxme_model <- coxme(Surv(dayOfWY, breeding_status) ~ 
-                     rain_to_date_scaled +
-                     cum_sun_hours_scaled +
-                     (1 | Watershed),
+                     rain_to_date +
+                     cum_sun_hours +
+                     (1 | LocationID),
                    data = complete_onset)
 
 summary(coxme_model)
-print(coxme_model)
-cox.zph(coxme_model)
-
-# summary of model
 
 # testing assumptions
 # to use the cox model, results of test_assumptions must not be significant
-test_cox <- cox.zph(coxme_model)
+test_cox <- cox.zph(coxme_model) # put desired model name here
 test_cox
 ggcoxzph(test_cox)
 print(test_cox)
 plot(test_cox)
 
-ggcoxdiagnostics(cox_model, linear.predictions = TRUE)
+
+
+# trying to plot survival curves... not working very well atm :(
+ggplot(survfit(cox_model_no_random))
+
 
 
 #### plot model -- forest plot (this one works!) ####
