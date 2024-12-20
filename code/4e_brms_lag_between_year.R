@@ -1,5 +1,6 @@
 library(brms)
 library(tidyverse)
+library(marginaleffects)
 
 ##### prep lagged data set ####
 # see EDA.rmd for exploration and selection of continuous sites
@@ -29,6 +30,31 @@ scaled_lag_between_year <- complete_lag_btw_data %>%
     WaterTemp_scaled = as.vector(scale(WaterTemp)),
     yearly_rain_lag_scaled = as.vector(scale(yearly_rain_lag)),
     num_egg_masses_lag_scaled = as.vector(scale(num_egg_masses_lag)))
+
+## unscaling
+# for unscaling later
+col_means_lag <- lag_between_year %>% 
+  filter(complete_case == TRUE) %>%
+  select(-Watershed, -LocationID, -dry_year, -CoastalSite, -water_flow, -water_regime, -complete_case) %>% 
+  colMeans() %>% 
+  t() %>% 
+  as.data.frame()
+
+write_csv(col_means_lag, here::here("data", "between_year_col_means_lag.csv"))
+
+col_sd_lag <- lag_between_year %>% 
+  filter(complete_case == TRUE) %>%
+  select(-Watershed, -LocationID, -dry_year, -CoastalSite, -water_flow, -water_regime, -complete_case) %>% 
+  apply(., 2, sd) %>% 
+  t() %>% 
+  as.data.frame()
+
+write_csv(col_sd_lag, here::here("data", "between_year_col_sd_lag.csv"))
+
+
+
+
+
 
 #### priors ####
 # taken 10-16-2024 from bprior.no.sal.linear.zi priors (4d)
@@ -82,15 +108,68 @@ conditional_effects(lag.zi.linear, surface = FALSE, prob = 0.89)
 
 # Try using the package sjPlot and function plot_model(MODELNAME, type = “eff”, terms = c(“TERM1”, “TERM2…)
 # Also try type = “int”
-library(sjPlot)
-plot_model(lag.zi.linear, type = "pred", term="BRDYEAR_scaled")
-plot_model(lag.zi.linear, type = "pred", term="interpolated_canopy_scaled")
-plot_model(lag.zi.linear, type = "pred", term="yearly_rain_lag_scaled")
-plot_model(lag.zi.linear, type = "pred", term="water_regime")
+# library(sjPlot)
+# plot_model(lag.zi.linear, type = "pred", term="BRDYEAR_scaled")
+# plot_model(lag.zi.linear, type = "pred", term="interpolated_canopy_scaled")
+# plot_model(lag.zi.linear, type = "pred", term="yearly_rain_lag_scaled")
+# plot_model(lag.zi.linear, type = "pred", term="water_regime")
+# 
+# plot_model(lag.zi.linear, type = "int", mdrt.values = "meansd")    
 
-plot_model(lag.zi.linear, type = "int", mdrt.values = "meansd")    
 
-library(marginaleffects)
-plot_predictions(lag.zi.linear, by = "BRDYEAR_scaled") 
+##### marginal effects #####
+# using marginaleffects
+plot_predictions(lag.zi.linear, by = "BRDYEAR_scaled", conf_level = 0.89)
 
+pred_lag <- predictions(lag.zi.linear, conf_level = 0.89, type = "prediction", ndraws = 10, re_formula = NA)
+pred_lag <- get_draws(pred_lag)
+
+write_csv(pred_lag, here::here("data", "pred_lag.csv"))
+
+# trying to unscale response variables for plotting
+col_means_lag <- read_csv(here::here("data", "between_year_col_means_lag.csv"))
+col_sd_lag <- read_csv(here::here("data", "between_year_col_sd_lag.csv"))
+
+## TODO: DL to go through and put the relevant columns and names
+# sig variables = year and canopy
+pred_unscaled_lag <- pred_lag %>% 
+  mutate(
+    interpolated_canopy_unscaled = (interpolated_canopy_scaled * col_sd_lag$interpolated_canopy) + col_means_lag$interpolated_canopy,
+    BRDYEAR_unscaled = (BRDYEAR_scaled * col_sd_lag$BRDYEAR) + col_means_lag$BRDYEAR
+  )
+
+# color palette because i want the plots to look pretty
+main_color <- "#CC5803"
+background <- "#FF9505"
+background2 <- "#FFB627"
+
+# OR
+main_color <- "#0B5563"
+background <- "#5299D3"
+background2 <- "#BEB8EB"
+
+
+# canopy -- significant
+canopy_plot_lag <- ggplot(pred_unscaled_lag, aes(x = interpolated_canopy_unscaled, y = estimate)) +
+  scale_y_continuous(limits = c(0, 200)) +
+  theme_bw() +
+  # geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2) +
+  geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
+  geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
+  geom_point(aes(y = num_egg_masses), color = background, alpha = 0.035) +
+  geom_line(stat = "smooth", color = main_color, linewidth = 1.5) +
+  labs(x = "Percent canopy cover", y = "Number of egg masses")
+
+
+plot_grid(canopy_plot, water_plot, nrow = 1)
+
+# BRDYEAR -- almost significant, nice to see trends over time
+year_plot_lag <- ggplot(pred_unscaled_lag, aes(x = BRDYEAR_unscaled, y = estimate)) +
+  scale_y_continuous(limits = c(0, 200)) +
+  theme_bw() +
+  geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
+  geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
+  geom_point(aes(y = num_egg_masses), color = background, alpha = 0.035) +
+  geom_line(stat = "smooth", color = main_color, linewidth = 1.5) +
+  labs(x = "Water year", y = "Number of egg masses")
             

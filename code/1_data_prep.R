@@ -158,6 +158,7 @@ between_year_data <- data %>%
 
 between_year_data$complete_case <- complete.cases(between_year_data)
 
+#### (un)scaling ####
 scaled_between_year <- between_year_data %>% 
   filter(complete_case == TRUE) %>% 
   mutate( BRDYEAR_scaled = as.vector(scale(BRDYEAR)),
@@ -191,9 +192,10 @@ col_sd <- between_year_data %>%
 
 write_csv(col_sd, here::here("data", "between_year_col_sd.csv"))
 
-
+#### lag effect ####
 # if we want to include lagged egg masses, this is the code to do so
 # holding off for now because it produces so many NA's
+## see 4e_brms_lag_betwee_year.R for other filters and use
 between_year_data_lagged <- scaled_between_year %>%
   group_by(LocationID) %>%
   arrange(BRDYEAR_scaled) %>%
