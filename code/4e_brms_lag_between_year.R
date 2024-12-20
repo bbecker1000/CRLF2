@@ -99,7 +99,7 @@ lag.zi.linear <- brm(
   chains = 3, cores = 3,
   iter = 5500, # 11500, # only need about 500 for inference
   warmup = 4500, #11000, 
-  control = list(adapt_delta = 0.97))
+  control = list(adapt_delta = 0.99))
 
 summary(lag.zi.linear, prob = 0.89) # year and canopy sig! Nov 20, 2024
 
@@ -165,7 +165,7 @@ plot_grid(canopy_plot, water_plot, nrow = 1)
 
 # BRDYEAR -- almost significant, nice to see trends over time
 year_plot_lag <- ggplot(pred_unscaled_lag, aes(x = BRDYEAR_unscaled, y = estimate)) +
-  scale_y_continuous(limits = c(0, 200)) +
+  scale_y_continuous(limits = c(-10, 200)) +
   theme_bw() +
   geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
   geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
