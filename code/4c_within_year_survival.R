@@ -165,12 +165,15 @@ survival_estimates <- outer(
   function(base, re) base^re
 )
 
-# generate data for plotting
+# generate data for plotting -- for future reference: dayOfWY only goes up to 180 because that's the last day of first breeding
 plot_data <- data.frame(
   dayOfWY = rep(surv_summary$time, each = length(random_effects)),
   survival = as.vector(survival_estimates),
   random_effect = rep(names(random_effects), length(surv_summary$time))
-) # for future reference: dayOfWY only goes up to 180 because that's the last day of first breeding
+) %>% 
+  group_by(dayOfWY, random_effect) %>% 
+  summarize(survival = mean(survival), .groups = "drop") #aggregate by dayOfWY
+
 
 # plot!
 ggplot(plot_data, aes(x = dayOfWY, y = survival, color = random_effect)) +
