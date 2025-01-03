@@ -4,7 +4,6 @@
 library(tidyverse)
 library(survival)
 library("survminer")
-library("mgcv")
 library(coxme)
 library(here)
 library(nlme) 
