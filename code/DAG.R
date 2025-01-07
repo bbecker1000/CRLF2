@@ -1,5 +1,5 @@
 ##DAGs for Frog models
-
+library(tidyverse)
 library(dagitty)
 #### most up to date model ####
 DAG_FROG <- dagitty(
@@ -16,6 +16,8 @@ DAG_FROG <- dagitty(
   Temp -> FROG ;
   Water_Regime -> Rain ;
   Site -> Water_Flow -> FROG ;
+  Egg_Mass_Lag -> FROG;
+  Rain -> Egg_Mass_Lag -> FROG;
 
 
   Year [exposure] ;
@@ -27,6 +29,7 @@ DAG_FROG <- dagitty(
   Temp [exposure] ;
   Water_Regime [exposure] ;
   Water_Flow [exposure] ;
+  Egg_Mass_Lag [expsoure] ;
   FROG [outcome] ;
 }"
 )
@@ -46,7 +49,8 @@ coordinates(DAG_FROG) <- list(
     FROG = 2.5,
     Canopy = 2.25,
     Temp = 2.25,
-    Water_Regime = 2.5
+    Water_Regime = 2.5,
+    Egg_Mass_Lag = 2.4
   ),
   y = c(
     Year = -1,
@@ -59,10 +63,12 @@ coordinates(DAG_FROG) <- list(
     FROG = 2,
     Canopy = -3,
     Temp = -2,
-    Water_Regime = -5
+    Water_Regime = -5,
+    Egg_Mass_Lag = -3
   )
 )
 plot(DAG_FROG)
+ggsave("~/Documents/Berkeley/junior 2023-24/spring24/frog job/CRLF2/Output/DAG.png")
 
 ##### frog model using ggdag ####
 library(ggdag)
