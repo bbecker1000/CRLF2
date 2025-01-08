@@ -3,7 +3,7 @@
 
 library(tidyverse)
 library(survival)
-library("survminer")
+library(survminer)
 library(coxme)
 library(here)
 library(nlme) 
@@ -54,7 +54,13 @@ sun_lm <- lm(cum_sun_hours ~ dayOfWY, data = complete_onset)
 sun_resid <- resid(sun_lm)
 
 complete_onset <- complete_onset %>% 
-  mutate(sun_resid = sun_resid)
+  mutate(sun_resid = sun_resid) %>% 
+  group_by(LocationID, dayOfWY) %>% 
+  mutate(breeding_status = max(breeding_status))
+
+complete_onset <- distinct(complete_onset, diff = paste(LocationID, dayOfWY), .keep_all = "true")
+
+
 #### *** SURVIVAL MODELS *** ####
 
 #intercept model of the mean
@@ -108,9 +114,9 @@ ggsurvplot(
 ## choose one
 # no random effects: rain to date + cumulative sun hours
 cox_model_no_random <- coxph(Surv(dayOfWY, breeding_status) ~ 
-                     rain_to_date + 
+                     rain_to_date +
                      # cum_sun_hours + 
-                     sun_resid, 
+                     sun_resid,
                    data = complete_onset)
 summary(cox_model_no_random)
 
@@ -137,11 +143,8 @@ summary(coxme_model)
 # testing assumptions
 # to use the cox model, results of test_assumptions must not be significant
 test_cox <- cox.zph(coxme_model) # put desired model name here
-test_cox
 ggcoxzph(test_cox)
 print(test_cox)
-plot(test_cox)
-
 
 
 # trying to plot survival curves... not working very well atm :(
@@ -171,7 +174,7 @@ plot_data <- data.frame(
   random_effect = rep(names(random_effects), length(surv_summary$time))
 ) %>% 
   group_by(dayOfWY, random_effect) %>% 
-  summarize(survival = mean(survival), .groups = "drop") #aggregate by dayOfWY
+  summarize(survival = mean(survival), .groups = "drop")  #aggregate by dayOfWY
 
 
 # plot!
@@ -181,7 +184,7 @@ ggplot(plot_data, aes(x = dayOfWY, y = survival, color = random_effect)) +
     x = "Day of Water Year",
     y = "Survival Probability",
     color = "LocationID",
-    title = "Survival Curves by LocationID (Random Effect)"
+    title = "Survival Curves by locationID (Random Effect)"
   ) + theme_minimal()
 
 #### plot model -- forest plot (this one works!) ####
