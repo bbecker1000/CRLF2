@@ -279,6 +279,44 @@ within_year_with_sun_hours <- left_join(onset_of_breeding, sun_hours, by = c("Lo
 # write to CSV
 write_csv(within_year_with_sun_hours, here::here("data", "onset_of_breeding.csv"))
 
+# within year data -- all breeding, not just onset
+breeding_timing <- data %>% 
+  select(LocationID, Watershed, BRDYEAR, dayOfWY, NumberofEggMasses, yearly_rain, yearly_rain_lag, water_flow, water_regime) %>% 
+  group_by(BRDYEAR, LocationID) %>% 
+  filter(NumberofEggMasses > 0) %>% 
+  select(-NumberofEggMasses) %>% 
+  arrange(BRDYEAR, LocationID, dayOfWY) %>% 
+  mutate(breeding_date = dayOfWY) %>% 
+  mutate(rain_to_date = NA) %>% 
+  group_by(BRDYEAR, LocationID) %>% 
+  uncount(dayOfWY + 1, .id = "dayOfWY") %>% 
+  mutate(dayOfWY = dayOfWY - 1, # need to zero index day of water year to match
+         breeding_status = if_else(breeding_date == dayOfWY, 1, 0)) %>% 
+  select(-breeding_date) %>% 
+  distinct() %>% 
+  group_by(LocationID, BRDYEAR, dayOfWY) %>% 
+  slice_max(n = 1, breeding_status, with_ties = FALSE) %>% 
+  ungroup()
+
+for (i in 1:nrow(breeding_timing)) {
+  row <- breeding_timing[i,]
+  day_of_wy <- as.numeric(row$dayOfWY)
+  year <- as.character(row$BRDYEAR)
+  y <- c(paste0("day_", day_of_wy))
+  z <- rainfall_daily_transposed[rownames(rainfall_daily_transposed) %in% y, ][year]
+  breeding_timing$rain_to_date[i] <- z
+}
+
+breeding_timing <- breeding_timing %>% 
+  mutate(rain_to_date = as.numeric(rain_to_date))
+
+# adding sun hours
+breeding_timing_with_sun_hours <- left_join(breeding_timing, sun_hours, by = c("LocationID" = "LocationID", "dayOfWY" = "day_number")) %>% 
+  select(-beginning_WY, -str_time)
+
+# write to CSV
+write_csv(breeding_timing_with_sun_hours, here::here("data", "breeding_timing.csv"))
+
 #### ~~~ *** WITHIN YEAR DATA: GAM *** ~~~ ####
 
 # getting rain to date for each day of the water year for every year
