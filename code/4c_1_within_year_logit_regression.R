@@ -64,7 +64,7 @@ residuals_df <- data.frame(
   fitted = predict(logit_within_year, type = "response"),
   residuals = residuals(logit_within_year, type = "pearson")
 )
-qqline(residuals(logit_within_year, type = "pearson"), col = "red")
+qqnorm(residuals(logit_within_year, type = "pearson"))
 
 
 # trying a GAM for logistic regression because the glmer didn't have good model diagnostics
