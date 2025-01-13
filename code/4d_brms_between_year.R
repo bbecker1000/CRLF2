@@ -1,6 +1,7 @@
 library(brms)
 library(lme4)
 library(marginaleffects)
+library(cowplot)
 
 scaled_between_year <- read_csv(here::here("data", "scaled_between_year.csv"))
 
@@ -19,9 +20,9 @@ bprior.no.sal.linear.zi <- c(
   prior(normal(0.25, 1), coef = WaterTemp_scaled), # add squared term
   prior(normal(0.25, 1), coef = yearly_rain_scaled), 
   prior(normal(0.25, 1), coef = yearly_rain_scaled:water_regimeseasonal),
-  prior(normal(0.25, 1), coef = yearly_rain_lag_scaled:water_regimeseasonal),
-  prior(normal(0.25, 1), coef = proportion_high_water_vis),
-  prior(normal(0, 1), coef = proportion_na_water_vis)
+  prior(normal(0.25, 1), coef = yearly_rain_lag_scaled:water_regimeseasonal)
+  # prior(normal(0.25, 1), coef = proportion_high_water_vis),
+  # prior(normal(0, 1), coef = proportion_na_water_vis)
   # prior(normal(0, 1), coef = water_visunknown)
 )
 
@@ -40,15 +41,15 @@ mod.zi.no.salinity.linear <- brm(
        water_regime +
        yearly_rain_lag_scaled : water_regime +
        water_flow +
-       proportion_high_water_vis +
-       proportion_na_water_vis +
+       # proportion_high_water_vis +
+       # proportion_na_water_vis +
        (1 | Watershed/LocationID),
-  data = scaled_between_year,  # run 4a to prep data file)
+  data = scaled_between_year, 
   family = zero_inflated_negbinomial(),
   prior = bprior.no.sal.linear.zi,
   chains = 3, cores = 3,
-  iter = 11500, # 11500, # only need about 500 for inference
-  warmup = 11000, #11000, 
+  iter = 13000,
+  warmup = 12000,
   control = list(adapt_delta = 0.99))
 
 summary(mod.zi.no.salinity.linear, prob = 0.89)
@@ -63,7 +64,7 @@ pred <- get_draws(pred)
 
 write_csv(pred, here::here("data", "pred.csv"))
 
-# trying to unscale response variables for plotting
+# unscaling response variables for plotting
 col_means <- read_csv(here::here("data", "between_year_col_means.csv"))
 col_sd <- read_csv(here::here("data", "between_year_col_sd.csv"))
 pred_unscaled <- pred %>% 
@@ -79,13 +80,13 @@ background <- "#FF9505"
 background2 <- "#FFB627"
 
 # OR
-main_color <- "#0B5563"
-background <- "#5299D3"
-background2 <- "#BEB8EB"
+main_color <- "#49741A"
+background <- "#7DC82D"
+background2 <- "#91D548"
 
 # canopy -- significant
 canopy_plot <- ggplot(pred_unscaled, aes(x = interpolated_canopy_unscaled, y = estimate)) +
-  scale_y_continuous(limits = c(0, 200)) +
+  scale_y_continuous(limits = c(-1, 175)) +
   theme_bw() +
   # geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2) +
   geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
@@ -96,7 +97,7 @@ canopy_plot <- ggplot(pred_unscaled, aes(x = interpolated_canopy_unscaled, y = e
 
 # percent open water -- significant
 water_plot <- ggplot(pred_unscaled, aes(x = mean_percent_water_unscaled, y = estimate)) +
-  scale_y_continuous(limits = c(0, 200)) +
+  scale_y_continuous(limits = c(-1, 175)) +
   theme_bw() +
   # geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2) +
   geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
@@ -105,17 +106,18 @@ water_plot <- ggplot(pred_unscaled, aes(x = mean_percent_water_unscaled, y = est
   geom_line(stat = "smooth", color = main_color, linewidth = 1.5) +
   labs(x = "Percent open water cover", y = "Number of egg masses")
 
-plot_grid(canopy_plot, water_plot, nrow = 1)
-
 # BRDYEAR -- almost significant, nice to see trends over time
 year_plot <- ggplot(pred_unscaled, aes(x = BRDYEAR_unscaled, y = estimate)) +
-  scale_y_continuous(limits = c(0, 200)) +
+  scale_y_continuous(limits = c(-1, 175)) +
   theme_bw() +
   geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
   geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
   geom_point(aes(y = num_egg_masses), color = background, alpha = 0.035) +
   geom_line(stat = "smooth", color = main_color, linewidth = 1.5) +
   labs(x = "Water year", y = "Number of egg masses")
+
+plot_grid(canopy_plot, water_plot, year_plot, nrow = 1)
+
 
 # geom_smooth()# using sjPlot
 conditional_effects(mod.zi.no.salinity.linear, surface = FALSE, prob = 0.89)

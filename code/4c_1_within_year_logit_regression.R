@@ -19,11 +19,12 @@ scaled_onset <- onset_of_breeding %>%
     yearly_rain_scaled = as.vector(scale(yearly_rain)),
     rain_to_date_scaled = as.vector(scale(rain_to_date)),
     water_flow = as.factor(water_flow),
-    water_regime = as.factor(water_regime), 
+    water_regime = as.factor(water_regime),
     Watershed = as.factor(Watershed),
     LocationID = as.factor(LocationID),
     cum_sun_hours_scaled = as.vector(scale(cum_sun_hours)),
-    dir_dur_scaled = as.vector(scale(dir_dur))) %>% 
+    dayOfWY_scaled = as.vector(scale(dayOfWY)),
+    dir_dur_scaled = as.vector(scale(dir_dur))) %>%
   select(-NumberofEggMasses) %>% 
   mutate(complete_case = complete.cases(.)) %>% 
   filter(complete_case == TRUE)
@@ -38,6 +39,7 @@ scaled_timing <- breeding_timing %>%
     Watershed = as.factor(Watershed),
     LocationID = as.factor(LocationID),
     cum_sun_hours_scaled = as.vector(scale(cum_sun_hours)),
+    dayOfWY_scaled = as.vector(scale(dayOfWY)),
     dir_dur_scaled = as.vector(scale(dir_dur))) %>% 
   mutate(complete_case = complete.cases(.)) %>% 
   filter(complete_case == TRUE)
@@ -50,9 +52,10 @@ within_year <- scaled_timing
 #### LOGISTIC REGRESSION ####
 
 logit_within_year <- glmer(breeding_status ~ 
-                     rain_to_date_scaled +
+                     rain_to_date_scaled * water_regime +
                      cum_sun_hours_scaled +
-                     (1 | LocationID) +
+                     water_flow +
+                     (1 | Watershed) +
                      (1 | BRDYEAR),
                    data = within_year,
                    family = "binomial")
