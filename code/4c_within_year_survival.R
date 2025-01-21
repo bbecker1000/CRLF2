@@ -113,15 +113,16 @@ ggsurvplot(
 
 ## choose one
 # no random effects: rain to date + cumulative sun hours
-cox_model_no_random <- coxph(Surv(dayOfWY, time2, breeding_status) ~
-                     rain_to_date,
-                     # cum_sun_hours + 
-                     # sun_resid,
-                   data = complete_onset)
-summary(cox_model_no_random)
+# cox_model_no_random <- coxph(Surv(dayOfWY, time2, breeding_status) ~
+#                      rain_to_date,
+#                      # cum_sun_hours + 
+#                      # sun_resid,
+#                    data = complete_onset)
+# summary(cox_model_no_random)
+# 
+# plot(survfit(cox_model_no_random))
 
-plot(survfit(cox_model_no_random))
-
+#### frailty model + plots ####
 # need to rename LocationID to cluster because of a bug in riskRegression package
 onset_renamed <- complete_onset %>% 
   mutate(cluster = LocationID,
@@ -154,13 +155,13 @@ adjusted_curves <- adjustedsurv(
 
 plot(adjusted_curves)
 
-
+#### coxme + plots ####
 # coxme with random effects: rain to date + cumulative sun hours
 coxme_model <- coxme(Surv(dayOfWY, time2, breeding_status) ~ 
                      rain_to_date +
                      # sun_resid +
                      # cum_sun_hours +
-                     (1 | LocationID/BRDYEAR),
+                     (1 | Watershed),
                    data = complete_onset)
 
 summary(coxme_model)
@@ -168,18 +169,18 @@ summary(coxme_model)
 baseline_hazard <- coxph(Surv(dayOfWY, time2, breeding_status) ~ 1,
                     data = complete_onset)
 
-# testing assumptions
-# to use the cox model, results of test_assumptions must not be significant
-test_cox <- cox.zph(coxme_model) # put desired model name here
-ggcoxzph(test_cox)
-print(test_cox)
+# # testing assumptions
+# # to use the cox model, results of test_assumptions must not be significant
+# test_cox <- cox.zph(coxme_model) # put desired model name here
+# ggcoxzph(test_cox)
+# print(test_cox)
 
 
 # trying to plot survival curves... not working very well right now :(
 
 # extract fixed effects and random effects of coxme model
 fixed_effects <- fixef(coxme_model)
-random_effects <- ranef(coxme_model)$'LocationID/BRDYEAR'
+random_effects <- t(data.frame(ranef(coxme_model)$Watershed))
 
 # get linear predictors of coxme model
 linear_pred <- predict(coxme_model, type = "lp")
@@ -211,9 +212,16 @@ for (i in seq_along(random_effects)) {
   }
 }
 
-ggplot(data = adjusted_survival, aes(x = ))
+plot_data <- adjusted_survival %>% 
+  mutate(dayOfWY = row.names(.)) %>% 
+  pivot_longer(cols = !dayOfWY, names_to = "Watershed", values_to = "hazard") %>% 
+  mutate(dayOfWY = as.integer(dayOfWY),
+         LocationID = as.factor(Watershed))
 
-# baseline_surv * exp(fixed_effects['rain_to_date'] * random_effects[i])
+ggplot(data = plot_data, aes(x = dayOfWY, y = hazard)) +
+  geom_line(aes(color = Watershed))
+
+# geom_point()# baseline_surv * exp(fixed_effects['rain_to_date'] * random_effects[i])
 # S(t)=exp⁡(−H(t)⋅exp⁡(βX+u).
 
 ### end troublesome part ###
