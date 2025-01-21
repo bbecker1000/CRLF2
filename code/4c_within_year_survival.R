@@ -122,25 +122,51 @@ summary(cox_model_no_random)
 
 plot(survfit(cox_model_no_random))
 
+# need to rename LocationID to cluster because of a bug in riskRegression package
+onset_renamed <- complete_onset %>% 
+  mutate(cluster = LocationID,
+         BRDYEAR = as.factor(BRDYEAR))
 
 # frailty effect: rain to date + cumulative sun hours
 cox_model_frailty <- coxph(Surv(dayOfWY, time2, breeding_status) ~ 
                      rain_to_date + 
+                     BRDYEAR +
                      # cum_sun_hours +
                      # sun_resid +
-                     frailty(LocationID), 
-                   data = complete_onset)
+                     frailty(cluster), 
+                   data = onset_renamed, 
+                   x = TRUE)
 summary(cox_model_frailty)
+
+predict_fun <- function(...) {
+  1 - predictRisk(...)
+}
+
+adjusted_curves <- adjustedsurv(
+  data = onset_renamed,
+  variable = "cluster",
+  ev_time = "dayOfWY",
+  event = "breeding_status",
+  method = "direct",
+  outcome_model = cox_model_frailty,
+  predict_fun = predict_fun
+)
+
+plot(adjusted_curves)
+
 
 # coxme with random effects: rain to date + cumulative sun hours
 coxme_model <- coxme(Surv(dayOfWY, time2, breeding_status) ~ 
                      rain_to_date +
                      # sun_resid +
                      # cum_sun_hours +
-                     (1 | LocationID / BRDYEAR),
+                     (1 | LocationID/BRDYEAR),
                    data = complete_onset)
 
 summary(coxme_model)
+
+baseline_hazard <- coxph(Surv(dayOfWY, time2, breeding_status) ~ 1,
+                    data = complete_onset)
 
 # testing assumptions
 # to use the cox model, results of test_assumptions must not be significant
@@ -149,7 +175,7 @@ ggcoxzph(test_cox)
 print(test_cox)
 
 
-# trying to plot survival curves... not working very well atm :(
+# trying to plot survival curves... not working very well right now :(
 
 # extract fixed effects and random effects of coxme model
 fixed_effects <- fixef(coxme_model)
@@ -158,42 +184,37 @@ random_effects <- ranef(coxme_model)$'LocationID/BRDYEAR'
 # get linear predictors of coxme model
 linear_pred <- predict(coxme_model, type = "lp")
 
-# get baseline survival curve using cox_model_no_random results
-baseline_surv <- survfit(cox_model_no_random)
+# get baseline survival curve using baselline_hazard results
+baseline_surv <- survfit(baseline_hazard)
 
 ### part I'm having trouble with ###
 
 cumulative_hazard <- -log(baseline_surv$surv)
 
-# # Adjust the survival curve using the random effects and fixed effects
-# survival_estimates <- lapply(names(random_effects), function(cluster) {
-#   random_effect <- random_effects[cluster]
-#   
-#   # Survival curve equation
-#   survival_curve <- function(t) {
-#     # Find the cumulative hazard for the current time t
-#     h_t <- cumulative_hazard[baseline_surv$time <= t]
-#     
-#     # Survival probability: exp(-sum of hazards) * random effect term
-#     exp(-sum(h_t) * exp(fixed_effects %*% complete_onset$rain_to_date + random_effect))
-#   }
-#   
-#   # Apply the survival curve function across all time points
-#   survival_values <- sapply(baseline_surv$time, survival_curve)
-#   return(survival_values)
-# })
-# 
-# # Combine results into a data frame for plotting
-# survival_data <- data.frame(
-#   time = rep(baseline_surv$time, length(random_effects)),
-#   survival = unlist(survival_estimates),
-#   random_effect = rep(names(random_effects), each = length(baseline_surv$time))
-# )
-# 
-# # Generate plot data for a specific random effect location (e.g., "KC01/2012")
-# plot_data <- survival_data %>%
-#   filter(random_effect == "KC01/2012")
+# Adjust the survival curve using the random effects and fixed effects
 
+adjusted_survival <- data.frame(matrix(nrow = length(cumulative_hazard), ncol = length(random_effects))) # needs to be a df -- one column per random effect (site/year), one row per day of WY
+colnames(adjusted_survival) <- colnames(random_effects)
+
+# for each day, calculate adjusted survival curve?
+# for (i in 1:length(random_effects)) {
+#   # For each random effect, adjust the survival curve
+#   adjusted_survival[, i] <- baseline_surv * exp(fixed_effects['rain_to_date'] * random_effects[i])  # Adjust based on fixed effects + random effects
+# }
+
+# for each locationID/Year combination, iterate through the baseline survival curve and generate adjusted curves
+for (i in seq_along(random_effects)) {
+  for (t in seq_along(baseline_surv$surv)) {
+    # Adjust the baseline survival using fixed and random effects
+    hazard_adjustment <- fixed_effects['rain_to_date'] + random_effects[i]
+    adjusted_survival[t, i] <- exp(-exp(hazard_adjustment) * cumulative_hazard[t])
+  }
+}
+
+ggplot(data = adjusted_survival, aes(x = ))
+
+# baseline_surv * exp(fixed_effects['rain_to_date'] * random_effects[i])
+# S(t)=exp⁡(−H(t)⋅exp⁡(βX+u).
 
 ### end troublesome part ###
 
