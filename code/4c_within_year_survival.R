@@ -322,7 +322,8 @@ ggplot(data = complete_onset %>% filter(breeding_status == 1), aes(x = days_sinc
 
 #### GLM: water temperature ####
 
-#NEED: table with canopy cover
-# already in table: day of WY, water temperature (WaterTemp)
+#NEED: table with canopy cover, water temperature (WaterTemp)
+# already in table: day of WY
 water_canopy_glm <- glm(WaterTemp ~ interpolated_canopy*dayOfWY,
                         data=onset_of_breeding_surv)
+summary(water_canopy_glm)
