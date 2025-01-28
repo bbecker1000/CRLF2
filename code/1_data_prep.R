@@ -246,7 +246,19 @@ for(i in 1:ncol(rainfall_daily_transposed)) {
   rainfall_daily_transposed[,i] <- cumsum(x)
 }
 
-# getting first breeding entries for each site and year
+threshold <- 0.2 # threshold value, we can choose later
+
+first_rainfall <- rownames_to_column(rainfall_daily_transposed, var = "first_rainfall") %>% 
+  mutate(first_rainfall = as.integer(substr(first_rainfall, 5, 7))) %>% 
+  pivot_longer(cols = -first_rainfall, names_to = "Year", values_to = "rainfall") %>%
+  mutate(Year = as.integer(Year)) %>% 
+  group_by(Year) %>% 
+  filter(rainfall > threshold) %>% 
+  arrange(rainfall) %>% 
+  slice_head() %>% 
+  ungroup()
+
+# getting first breedinfirst_rainfall# getting first breeding entries for each site and year
 onset_of_breeding <- data %>% 
   select(LocationID, Watershed, BRDYEAR, dayOfWY, NumberofEggMasses, yearly_rain, yearly_rain_lag, water_flow, water_regime) %>% 
   group_by(BRDYEAR, LocationID) %>% 
@@ -258,8 +270,11 @@ onset_of_breeding <- data %>%
   group_by(BRDYEAR, LocationID) %>% 
   uncount(dayOfWY + 1, .id = "dayOfWY") %>% 
   mutate(dayOfWY = dayOfWY - 1, # need to zero index day of water year to match
-         breeding_status = if_else(first_breeding == dayOfWY, 1, 0))  
+         breeding_status = if_else(first_breeding == dayOfWY, 1, 0)) %>% 
+  left_join(., first_rainfall, by = c("BRDYEAR" = "Year"))
 
+# this can easily be optimized using the first part of the first_rainfall pipe to put rainfall
+# data into tidy format
 for (i in 1:nrow(onset_of_breeding)) {
   row <- onset_of_breeding[i,]
   day_of_wy <- as.numeric(row$dayOfWY)
@@ -270,7 +285,9 @@ for (i in 1:nrow(onset_of_breeding)) {
 }
 
 onset_of_breeding <- onset_of_breeding %>% 
-  mutate(rain_to_date = as.numeric(rain_to_date))
+  mutate(rain_to_date = as.numeric(rain_to_date)) %>% 
+  mutate(days_since_first_rain = dayOfWY - first_rainfall) %>% 
+  select(-rainfall, -first_rainfall, -yearly_rain, -yearly_rain_lag, -first_breeding, -NumberofEggMasses)
 
 # adding sun hours
 within_year_with_sun_hours <- left_join(onset_of_breeding, sun_hours, by = c("LocationID" = "LocationID", "dayOfWY" = "day_number")) %>% 
@@ -279,6 +296,8 @@ within_year_with_sun_hours <- left_join(onset_of_breeding, sun_hours, by = c("Lo
 # write to CSV
 write_csv(within_year_with_sun_hours, here::here("data", "onset_of_breeding.csv"))
 
+# this is not updated to include days since first rainfall. I'll update it if we end up using timing
+# instead of onset
 # within year data -- all breeding, not just onset
 breeding_timing <- data %>% 
   select(LocationID, Watershed, BRDYEAR, dayOfWY, NumberofEggMasses, yearly_rain, yearly_rain_lag, water_flow, water_regime) %>% 
