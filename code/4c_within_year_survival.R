@@ -326,4 +326,8 @@ ggplot(data = complete_onset %>% filter(breeding_status == 1), aes(x = days_sinc
 # already in table: day of WY
 water_canopy_glm <- glm(WaterTemp ~ interpolated_canopy*dayOfWY,
                         data=onset_of_breeding_surv)
+
+#TODO: see what happens with variables on own (+)
+#TODO: histogram of just Water Temp
 summary(water_canopy_glm)
+plot(water_canopy_glm)
