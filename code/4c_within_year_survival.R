@@ -38,8 +38,7 @@ unscaled_within_year <- onset_of_breeding_surv %>%
     water_flow = as.factor(water_flow),
     water_regime = as.factor(water_regime), 
     LocationID = as.factor(LocationID),
-    Watershed = as.factor(Watershed)) %>% 
-  select(-NumberofEggMasses)
+    Watershed = as.factor(Watershed))
 
 # creating a "complete case" column
 # scaled_within_year$complete_case <- complete.cases(scaled_within_year)
@@ -55,7 +54,8 @@ sun_lm <- lm(cum_sun_hours ~ dayOfWY, data = complete_onset)
 sun_resid <- resid(sun_lm)
 
 complete_onset <- complete_onset %>%
-  mutate(sun_resid = sun_resid)
+  mutate(sun_resid = sun_resid,
+         BRDYEAR = as.factor(BRDYEAR))
 #   mutate(breeding_status = max(breeding_status))
 # 
 # complete_onset <- distinct(complete_onset, diff = paste(LocationID, dayOfWY), .keep_all = "true")
@@ -123,29 +123,64 @@ ggsurvplot(
 # plot(survfit(cox_model_no_random))
 
 #### frailty model + plots ####
-# need to rename LocationID to cluster because of a bug in riskRegression package
-onset_renamed <- complete_onset %>% 
-  mutate(cluster = LocationID,
-         BRDYEAR = as.factor(BRDYEAR))
+
+# group rain_to_date and days_since_first_rain into groups for survival model
+onset_grouped <- complete_onset %>% 
+  mutate(
+    rain_to_date_groups = cut(rain_to_date, 
+                              breaks = quantile(rain_to_date, probs = seq(0, 1, 0.2), na.rm = TRUE),
+                              include.lowest = TRUE, labels = c("Q1", "Q2", "Q3", "Q4", "Q5")),
+    days_since_first_rain_groups = cut(days_since_first_rain, 
+                                       breaks = quantile(days_since_first_rain, probs = seq(0, 1, 0.2), na.rm = TRUE),
+                                       include.lowest = TRUE, labels = c("Q1", "Q2", "Q3", "Q4", "Q5")),
+    cum_sun_hours_groups = cut(cum_sun_hours, 
+                               breaks = quantile(cum_sun_hours, probs = seq(0, 1, 0.2), na.rm = TRUE),
+                               include.lowest = TRUE, labels = c("Q1", "Q2", "Q3", "Q4", "Q5"))
+  )
+
+ggplot(data = onset_grouped, aes(x = rain_to_date)) +
+  geom_histogram(aes(fill = rain_to_date_groups))
+
+ggplot(data = onset_grouped, aes(x = days_since_first_rain)) +
+  geom_histogram(aes(fill = days_since_first_rain_groups))
+
+ggplot(data = onset_grouped %>% filter(breeding_status == 1), aes(x = days_since_first_rain)) +
+  geom_histogram(aes(fill = days_since_first_rain_groups))
+
+ggplot(data = onset_grouped, aes(x = cum_sun_hours)) +
+  geom_histogram(aes(fill = cum_sun_hours_groups))
 
 # frailty effect: rain to date + cumulative sun hours
 cox_model_frailty <- coxph(Surv(dayOfWY, time2, breeding_status) ~ 
-                     rain_to_date + 
-                     BRDYEAR +
-                     # cum_sun_hours +
-                     # sun_resid +
-                     frailty(cluster), 
-                   data = onset_renamed, 
+                     # rain_to_date_groups +
+                     days_since_first_rain_groups +
+                     # cum_sun_hours_groups +
+                     frailty(LocationID), 
+                   data = onset_grouped, 
                    x = TRUE)
 summary(cox_model_frailty)
+
+
+
+cox_model_frailty <- coxph(Surv(dayOfWY, time2, breeding_status) ~ 
+                             rain_to_date + 
+                             days_since_first_rain +
+                             sun_resid +
+                             frailty(LocationID), 
+                           data = complete_onset, 
+                           x = TRUE)
+summary(cox_model_frailty)
+
+ggforest(cox_model_frailty, data = onset_grouped)
+
 
 predict_fun <- function(...) {
   1 - predictRisk(...)
 }
 
 adjusted_curves <- adjustedsurv(
-  data = onset_renamed,
-  variable = "cluster",
+  data = onset_grouped,
+  variable = "rain_to_date_groups",
   ev_time = "dayOfWY",
   event = "breeding_status",
   method = "direct",
@@ -155,7 +190,13 @@ adjusted_curves <- adjustedsurv(
 
 plot(adjusted_curves)
 
-#### coxme + plots ####
+# testing assumptions
+# to use the cox model, results of test_assumptions must not be significant
+test_cox <- cox.zph(cox_model_frailty, transform = "identity") # put desired model name here
+ggcoxzph(test_cox)
+print(test_cox)
+
+#### coxme + plots -- no longer using ####
 # coxme with random effects: rain to date + cumulative sun hours
 coxme_model <- coxme(Surv(dayOfWY, time2, breeding_status) ~ 
                      rain_to_date +
@@ -168,12 +209,6 @@ summary(coxme_model)
 
 baseline_hazard <- coxph(Surv(dayOfWY, time2, breeding_status) ~ 1,
                     data = complete_onset)
-
-# # testing assumptions
-# # to use the cox model, results of test_assumptions must not be significant
-# test_cox <- cox.zph(coxme_model) # put desired model name here
-# ggcoxzph(test_cox)
-# print(test_cox)
 
 
 # trying to plot survival curves... not working very well right now :(
@@ -280,6 +315,10 @@ ggplot(data = complete_onset, aes(x = cum_sun_hours, y = breeding_status)) +
 
 ggplot(data = complete_onset, aes(x = rain_to_date, y = breeding_status)) +
   geom_smooth()
+
+ggplot(data = complete_onset %>% filter(breeding_status == 1), aes(x = days_since_first_rain)) +
+  geom_histogram(binwidth = 5) +
+  facet_wrap(~BRDYEAR)
 
 #### GLM: water temperature ####
 
