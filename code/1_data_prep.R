@@ -260,7 +260,7 @@ first_rainfall <- rownames_to_column(rainfall_daily_transposed, var = "first_rai
 
 # getting first breedinfirst_rainfall# getting first breeding entries for each site and year
 onset_of_breeding <- data %>% 
-  select(LocationID, Watershed, BRDYEAR, dayOfWY, NumberofEggMasses, yearly_rain, yearly_rain_lag, water_flow, water_regime, interpolated_canopy) %>% 
+  select(LocationID, Watershed, BRDYEAR, dayOfWY, NumberofEggMasses, yearly_rain, yearly_rain_lag, water_flow, water_regime, interpolated_canopy, WaterTemp) %>% 
   group_by(BRDYEAR, LocationID) %>% 
   filter(NumberofEggMasses > 0) %>% 
   arrange(BRDYEAR, LocationID, dayOfWY) %>% 
