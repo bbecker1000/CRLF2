@@ -280,3 +280,10 @@ ggplot(data = complete_onset, aes(x = cum_sun_hours, y = breeding_status)) +
 
 ggplot(data = complete_onset, aes(x = rain_to_date, y = breeding_status)) +
   geom_smooth()
+
+#### GLM: water temperature ####
+
+#NEED: table with canopy cover
+# already in table: day of WY, water temperature (WaterTemp)
+water_canopy_glm <- glm(WaterTemp ~ interpolated_canopy*dayOfWY,
+                        data=onset_of_breeding_surv)

@@ -158,7 +158,7 @@ between_year_data <- data %>%
 
 between_year_data$complete_case <- complete.cases(between_year_data)
 
-#### (un)scaling ####
+##### (un)scaling ####
 scaled_between_year <- between_year_data %>% 
   filter(complete_case == TRUE) %>% 
   mutate( BRDYEAR_scaled = as.vector(scale(BRDYEAR)),
@@ -192,7 +192,7 @@ col_sd <- between_year_data %>%
 
 write_csv(col_sd, here::here("data", "between_year_col_sd.csv"))
 
-#### lag effect ####
+##### lag effect ####
 # if we want to include lagged egg masses, this is the code to do so
 # holding off for now because it produces so many NA's
 ## see 4e_brms_lag_betwee_year.R for other filters and use
@@ -206,7 +206,7 @@ between_year_data_lagged <- scaled_between_year %>%
 write_csv(scaled_between_year, here::here("data", "scaled_between_year.csv"))
 write_csv(between_year_data_lagged, here::here("data", "lag_between_year_data.csv"))
 
-#### cover comparison ####
+##### cover comparison ####
 between_year_data_for_cover_comparison <- data %>% 
   select(LocationID, BRDYEAR, Watershed, NumberofEggMasses, AirTemp, WaterTemp, MaxD, WaterSalinity, CoastalSite, yearly_rain, mean_percent_sub, 
          mean_percent_emerg, mean_percent_water, ground_sub, ground_emerg, ground_open_water, interpolated_sub, interpolated_emerg, interpolated_openwater) %>% 
@@ -248,7 +248,7 @@ for(i in 1:ncol(rainfall_daily_transposed)) {
 
 # getting first breeding entries for each site and year
 onset_of_breeding <- data %>% 
-  select(LocationID, Watershed, BRDYEAR, dayOfWY, NumberofEggMasses, yearly_rain, yearly_rain_lag, water_flow, water_regime) %>% 
+  select(LocationID, Watershed, BRDYEAR, dayOfWY, NumberofEggMasses, yearly_rain, yearly_rain_lag, water_flow, water_regime, interpolated_canopy) %>% 
   group_by(BRDYEAR, LocationID) %>% 
   filter(NumberofEggMasses > 0) %>% 
   arrange(BRDYEAR, LocationID, dayOfWY) %>% 
