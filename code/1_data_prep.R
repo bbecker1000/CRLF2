@@ -248,7 +248,7 @@ for(i in 1:ncol(rainfall_daily_transposed)) {
   rainfall_daily_transposed[,i] <- cumsum(x)
 }
 
-threshold <- 0.2 # threshold value, we can choose later
+threshold <- 0.7 # threshold value, we can choose later
 
 first_rainfall <- rownames_to_column(rainfall_daily_transposed, var = "first_rainfall") %>% 
   mutate(first_rainfall = as.integer(substr(first_rainfall, 5, 7))) %>% 

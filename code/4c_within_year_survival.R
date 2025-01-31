@@ -20,18 +20,17 @@ setwd(here::here("code"))
 onset_of_breeding_surv <- read_csv(here::here("data", "onset_of_breeding.csv"))
 
 # scaling covariates
-# scaled_within_year <- onset_of_breeding_surv %>% 
-#   mutate(
-#     BRDYEAR_scaled = as.vector(scale(BRDYEAR)),
-#     yearly_rain_scaled = as.vector(scale(yearly_rain)),
-#     rain_to_date_scaled = as.vector(scale(rain_to_date)),
-#     water_flow = as.factor(water_flow),
-#     water_regime = as.factor(water_regime), 
-#     LocationID = as.factor(LocationID),
-#     Watershed = as.factor(Watershed),
-#     cum_sun_hours_scaled = as.vector(scale(cum_sun_hours)),
-#     dir_dur_scaled = as.vector(scale(dir_dur))) %>% 
-#   select(-NumberofEggMasses)
+scaled_within_year <- onset_of_breeding_surv %>%
+  mutate(
+    BRDYEAR_scaled = as.vector(scale(BRDYEAR)),
+    rain_to_date_scaled = as.vector(scale(rain_to_date)),
+    days_since_first_rain_scaled = as.vector(scale(days_since_first_rain)),
+    water_flow = as.factor(water_flow),
+    water_regime = as.factor(water_regime),
+    LocationID = as.factor(LocationID),
+    Watershed = as.factor(Watershed),
+    cum_sun_hours_scaled = as.vector(scale(cum_sun_hours)),
+    dir_dur_scaled = as.vector(scale(dir_dur)))
 
 # for unscaled data
 unscaled_within_year <- onset_of_breeding_surv %>% 
@@ -42,21 +41,22 @@ unscaled_within_year <- onset_of_breeding_surv %>%
     Watershed = as.factor(Watershed))
 
 # creating a "complete case" column
-# scaled_within_year$complete_case <- complete.cases(scaled_within_year)
-# complete_onset <- scaled_within_year %>% filter(complete_case == TRUE) %>% select(-complete_case)
+scaled_within_year$complete_case <- complete.cases(scaled_within_year)
+complete_onset <- scaled_within_year %>% filter(complete_case == TRUE) %>% select(-complete_case) %>% 
+  mutate(time2 = dayOfWY + 1)
 
 # run only these lines to prep data for unscaled models
 unscaled_within_year$complete_case <- complete.cases(unscaled_within_year)
 complete_onset <- unscaled_within_year %>% filter(complete_case == TRUE) %>% select(-complete_case) %>% 
   mutate(time2 = dayOfWY + 1)
 
-# testing collinearity between day of year and sun hours
-sun_lm <- lm(cum_sun_hours ~ dayOfWY, data = complete_onset)
-sun_resid <- resid(sun_lm)
-
-complete_onset <- complete_onset %>%
-  mutate(sun_resid = sun_resid,
-         BRDYEAR = as.factor(BRDYEAR))
+# sun residuals -- not using
+# sun_lm <- lm(cum_sun_hours ~ dayOfWY, data = complete_onset)
+# sun_resid <- resid(sun_lm)
+# 
+# complete_onset <- complete_onset %>%
+#   mutate(sun_resid = sun_resid,
+#          BRDYEAR = as.factor(BRDYEAR))
 #   mutate(breeding_status = max(breeding_status))
 # 
 # complete_onset <- distinct(complete_onset, diff = paste(LocationID, dayOfWY), .keep_all = "true")
@@ -149,18 +149,10 @@ ggplot(data = onset_grouped, aes(x = rain_to_date_groups)) +
 ggplot(data = onset_grouped, aes(x = cum_sun_hours_groups)) +
   geom_bar(aes(fill = as.factor(breeding_status)))
 
-# # frailty effect: rain to date + cumulative sun hours 
-# cox_model_frailty <- coxph(Surv(dayOfWY, time2, breeding_status) ~ 
-#                      rain_to_date:days_since_first_rain_groups +
-#                      # cum_sun_hours_groups +
-#                      frailty(LocationID), 
-#                    data = onset_grouped, 
-#                    x = TRUE)
-# summary(cox_model_frailty)
 
 cox_model_frailty <- coxph(Surv(dayOfWY, time2, breeding_status) ~ 
-                             rain_to_date +
-                             days_since_first_rain +
+                             rain_to_date_scaled +
+                             days_since_first_rain_scaled +
                              frailty(LocationID), 
                            data = complete_onset, 
                            x = TRUE)
@@ -188,13 +180,13 @@ background <- "#7DC82D"
 background2 <- "#91D548"
 
 rain_hazard_plot <- ggplot(new_data_rain, aes(x = rain_to_date, y = hazard_ratio)) +
-  geom_line(color = main_color, size = 1) +
+  geom_line(color = main_color, linewidth = 1) +
   geom_hline(yintercept = 1, linetype = "dashed", color = background) +
   labs(x = "Cumulative Rainfall", y = "Hazard Ratio") +
   theme_bw()
 
 time_hazard_plot <- ggplot(new_data_days, aes(x = days_since_first_rain, y = hazard_ratio)) +
-  geom_line(color = main_color, size = 1) +
+  geom_line(color = main_color, linewidth = 1) +
   geom_hline(yintercept = 1, linetype = "dashed", color = background) +
   labs(x = "Days Since First Rainfall", y = "Hazard Ratio") +
   theme_bw()
