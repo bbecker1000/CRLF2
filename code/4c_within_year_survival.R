@@ -126,53 +126,82 @@ ggsurvplot(
 #### frailty model + plots ####
 
 # group rain_to_date and days_since_first_rain into groups for survival model
+# doesn't work now that days since first rain is only positive
 onset_grouped <- complete_onset %>% 
   mutate(
     rain_to_date_groups = cut(rain_to_date, 
-                              breaks = quantile(rain_to_date, probs = seq(0, 1, 0.2), na.rm = TRUE),
-                              include.lowest = TRUE, labels = c("Q1", "Q2", "Q3", "Q4", "Q5")),
+                              breaks = 10,
+                              include.lowest = TRUE),
     days_since_first_rain_groups = cut(days_since_first_rain, 
-                                       breaks = quantile(days_since_first_rain, probs = seq(0, 1, 0.2), na.rm = TRUE),
-                                       include.lowest = TRUE, labels = c("Q1", "Q2", "Q3", "Q4", "Q5")),
+                                       breaks = 10,
+                                       include.lowest = TRUE),
     cum_sun_hours_groups = cut(cum_sun_hours, 
-                               breaks = quantile(cum_sun_hours, probs = seq(0, 1, 0.2), na.rm = TRUE),
-                               include.lowest = TRUE, labels = c("Q1", "Q2", "Q3", "Q4", "Q5"))
+                               breaks = 10,
+                               include.lowest = TRUE)
   )
 
-ggplot(data = onset_grouped, aes(x = rain_to_date)) +
-  geom_histogram(aes(fill = rain_to_date_groups))
+ggplot(data = onset_grouped, aes(x = days_since_first_rain_groups)) +
+  geom_bar(aes(fill = as.factor(breeding_status)))
+  
+ggplot(data = onset_grouped, aes(x = rain_to_date_groups)) +
+  geom_bar(aes(fill = as.factor(breeding_status)))
 
-ggplot(data = onset_grouped, aes(x = days_since_first_rain)) +
-  geom_histogram(aes(fill = days_since_first_rain_groups))
+ggplot(data = onset_grouped, aes(x = cum_sun_hours_groups)) +
+  geom_bar(aes(fill = as.factor(breeding_status)))
 
-ggplot(data = onset_grouped %>% filter(breeding_status == 1), aes(x = days_since_first_rain)) +
-  geom_histogram(aes(fill = days_since_first_rain_groups))
-
-ggplot(data = onset_grouped, aes(x = cum_sun_hours)) +
-  geom_histogram(aes(fill = cum_sun_hours_groups))
-
-# frailty effect: rain to date + cumulative sun hours
-cox_model_frailty <- coxph(Surv(dayOfWY, time2, breeding_status) ~ 
-                     # rain_to_date_groups +
-                     days_since_first_rain_groups +
-                     # cum_sun_hours_groups +
-                     frailty(LocationID), 
-                   data = onset_grouped, 
-                   x = TRUE)
-summary(cox_model_frailty)
-
-
+# # frailty effect: rain to date + cumulative sun hours 
+# cox_model_frailty <- coxph(Surv(dayOfWY, time2, breeding_status) ~ 
+#                      rain_to_date:days_since_first_rain_groups +
+#                      # cum_sun_hours_groups +
+#                      frailty(LocationID), 
+#                    data = onset_grouped, 
+#                    x = TRUE)
+# summary(cox_model_frailty)
 
 cox_model_frailty <- coxph(Surv(dayOfWY, time2, breeding_status) ~ 
-                             rain_to_date + 
+                             rain_to_date +
                              days_since_first_rain +
-                             sun_resid +
                              frailty(LocationID), 
                            data = complete_onset, 
                            x = TRUE)
 summary(cox_model_frailty)
 
-ggforest(cox_model_frailty, data = onset_grouped)
+new_data_days <- expand.grid(
+  rain_to_date = mean(complete_onset$rain_to_date, na.rm = TRUE),  # Keep rain constant
+  days_since_first_rain = seq(min(complete_onset$days_since_first_rain, na.rm = TRUE),
+                              max(complete_onset$days_since_first_rain, na.rm = TRUE),
+                              length.out = 162)
+)
+
+new_data_rain <- expand.grid(
+  rain_to_date = seq(min(complete_onset$rain_to_date, na.rm = TRUE),
+                     max(complete_onset$rain_to_date, na.rm = TRUE),
+                     length.out = 162),
+  days_since_first_rain = mean(complete_onset$days_since_first_rain, na.rm = TRUE)
+)
+
+new_data_rain$hazard_ratio <- exp(predict(cox_model_frailty, newdata = new_data_rain, type = "risk"))
+new_data_days$hazard_ratio <- exp(predict(cox_model_frailty, newdata = new_data_days, type = "risk"))
+
+main_color <- "#49741A"
+background <- "#7DC82D"
+background2 <- "#91D548"
+
+rain_hazard_plot <- ggplot(new_data_rain, aes(x = rain_to_date, y = hazard_ratio)) +
+  geom_line(color = main_color, size = 1) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = background) +
+  labs(x = "Cumulative Rainfall", y = "Hazard Ratio") +
+  theme_bw()
+
+time_hazard_plot <- ggplot(new_data_days, aes(x = days_since_first_rain, y = hazard_ratio)) +
+  geom_line(color = main_color, size = 1) +
+  geom_hline(yintercept = 1, linetype = "dashed", color = background) +
+  labs(x = "Days Since First Rainfall", y = "Hazard Ratio") +
+  theme_bw()
+
+plot_grid(rain_hazard_plot, time_hazard_plot, nrow = 1)
+
+ggforest(cox_model_frailty, data = complete_onset)
 
 
 predict_fun <- function(...) {
@@ -180,8 +209,8 @@ predict_fun <- function(...) {
 }
 
 adjusted_curves <- adjustedsurv(
-  data = onset_grouped,
-  variable = "rain_to_date_groups",
+  data = complete_onset,
+  variable = "rain_to_date",
   ev_time = "dayOfWY",
   event = "breeding_status",
   method = "direct",

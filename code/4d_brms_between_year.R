@@ -75,9 +75,9 @@ pred_unscaled <- pred %>%
   )
 
 # color palette because i want the plots to look pretty
-main_color <- "#CC5803"
-background <- "#FF9505"
-background2 <- "#FFB627"
+# main_color <- "#CC5803"
+# background <- "#FF9505"
+# background2 <- "#FFB627"
 
 # OR
 main_color <- "#49741A"

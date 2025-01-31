@@ -9,8 +9,10 @@ library(readxl)
 setwd(here::here("code"))
 # for V6 data:
 raw_data <- read_csv(here::here("data", "CRLF_EGG_RAWDATA_V6.csv"))
-rainfall_daily <- read_csv(here::here("data", "cm_daily_rain.csv"))
-rainfall_yearly <- read_csv(here::here("data", "cm_yearly_rain.csv"))
+rainfall_daily <- read_csv(here::here("data", "cm_daily_rain.csv")) %>% 
+  mutate(across(-Water_Year, ~ . * 2.54))
+rainfall_yearly <- read_csv(here::here("data", "cm_yearly_rain.csv")) %>% 
+  mutate(across(-Water_Year, ~ . * 2.54))
 land_cover <- read_csv(here::here("data", "cover_estimates.csv"))
 location_type <- read_csv(here::here("data", "CRLF_tblLocations.csv")) %>% 
   select("LocationID", 'Lotic_Lentic', 'WaterRegime') %>% 
@@ -258,7 +260,7 @@ first_rainfall <- rownames_to_column(rainfall_daily_transposed, var = "first_rai
   slice_head() %>% 
   ungroup()
 
-# getting first breedinfirst_rainfall# getting first breeding entries for each site and year
+# getting first breeding entries for each site and year
 onset_of_breeding <- data %>% 
   select(LocationID, Watershed, BRDYEAR, dayOfWY, NumberofEggMasses, yearly_rain, yearly_rain_lag, water_flow, water_regime, interpolated_canopy, WaterTemp) %>% 
   group_by(BRDYEAR, LocationID) %>% 
@@ -286,7 +288,7 @@ for (i in 1:nrow(onset_of_breeding)) {
 
 onset_of_breeding <- onset_of_breeding %>% 
   mutate(rain_to_date = as.numeric(rain_to_date)) %>% 
-  mutate(days_since_first_rain = dayOfWY - first_rainfall) %>% 
+  mutate(days_since_first_rain = pmax(0, dayOfWY - first_rainfall)) %>% 
   select(-rainfall, -first_rainfall, -yearly_rain, -yearly_rain_lag, -first_breeding, -NumberofEggMasses)
 
 # adding sun hours
