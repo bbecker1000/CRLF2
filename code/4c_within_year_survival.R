@@ -16,7 +16,7 @@ library(adjustedCurves)
 
 #### prepping data for analysis ####
 setwd(here::here("code"))
-#rename file
+#rename file = unscaled
 onset_of_breeding_surv <- read_csv(here::here("data", "onset_of_breeding.csv"))
 
 # scaling covariates
@@ -343,13 +343,38 @@ ggplot(data = complete_onset %>% filter(breeding_status == 1), aes(x = days_sinc
   facet_wrap(~BRDYEAR)
 
 #### GLM: water temperature ####
-
-#NEED: table with canopy cover, water temperature (WaterTemp)
-# already in table: day of WY
-water_canopy_glm <- glm(WaterTemp ~ interpolated_canopy*dayOfWY,
+water_canopy_glm <- glm(WaterTemp ~ interpolated_canopy +
+                          dayOfWY +
+                          interpolated_canopy:dayOfWY,
                         data=onset_of_breeding_surv)
 
-#TODO: see what happens with variables on own (+)
-#TODO: histogram of just Water Temp
 summary(water_canopy_glm)
 plot(water_canopy_glm)
+
+#TODO: trouble-shooting odd residual plots:
+#variables on their own
+## canopy
+water_glm_canopy <- glm(WaterTemp ~ interpolated_canopy,
+                        data=onset_of_breeding_surv)
+summary(water_glm_canopy)
+plot(water_glm_canopy)
+
+## day of water year
+water_glm_day <- glm(WaterTemp ~ dayOfWY,
+                     data=onset_of_breeding_surv)
+summary(water_glm_day)
+plot(water_glm_day) # these look funny ...
+
+## interaction
+water_glm_int <-  glm(WaterTemp ~ interpolated_canopy:dayOfWY,
+                      data=onset_of_breeding_surv)
+summary(water_glm_int)
+plot(water_glm_int)
+
+#histogram of variables
+ggplot(onset_of_breeding_surv, aes(x=WaterTemp))+
+  geom_histogram(fill="cornflowerblue")
+
+ggplot(onset_of_breeding_surv, aes(x=dayOfWY))+
+  geom_histogram(fill="darkolivegreen4",binwidth=1)
+
