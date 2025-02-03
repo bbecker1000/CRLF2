@@ -278,7 +278,7 @@ onset_of_breeding <- data %>%
   mutate(breeding_status = if_else(first_breeding == dayOfWY, 1, 0),
          rain_to_date = NA,
          next_survey_2 = lead(dayOfWY),
-         next_survey = if_else(is.na(next_survey_2), next_survey, next_survey_2)) %>% 
+         next_survey = if_else(is.na(next_survey_2), if_else(is.na(next_survey), max(dayOfWY) + 1, next_survey), next_survey_2)) %>% 
   select(-next_survey_2) %>% 
   left_join(first_rainfall, by = c("BRDYEAR" = "Year"))
 

@@ -38,7 +38,8 @@ unscaled_within_year <- onset_of_breeding_surv %>%
     water_flow = as.factor(water_flow),
     water_regime = as.factor(water_regime), 
     LocationID = as.factor(LocationID),
-    Watershed = as.factor(Watershed))
+    Watershed = as.factor(Watershed)) %>% 
+  select(-interpolated_canopy, -WaterTemp) # for complete cases, lots of NA's 
 
 # creating a "complete case" column
 # scaled_within_year$complete_case <- complete.cases(scaled_within_year)
@@ -47,7 +48,13 @@ unscaled_within_year <- onset_of_breeding_surv %>%
 
 # run only these lines to prep data for unscaled models
 unscaled_within_year$complete_case <- complete.cases(unscaled_within_year)
-complete_onset <- unscaled_within_year %>% filter(complete_case == TRUE) %>% select(-complete_case)
+complete_onset <- unscaled_within_year %>% 
+  filter(complete_case == TRUE,
+         next_survey > dayOfWY) %>% 
+  select(-complete_case)
+
+weird_data <- complete_onset %>% 
+  filter(next_survey <= dayOfWY)
 
 # sun residuals -- not using
 # sun_lm <- lm(cum_sun_hours ~ dayOfWY, data = complete_onset)
@@ -130,49 +137,33 @@ onset_grouped <- complete_onset %>%
   mutate(
     rain_to_date_groups = cut(rain_to_date, 
                               breaks = 10,
-                              include.lowest = TRUE),
-    days_since_first_rain_groups = cut(days_since_first_rain, 
-                                       breaks = 10,
-                                       include.lowest = TRUE),
-    cum_sun_hours_groups = cut(cum_sun_hours, 
-                               breaks = 10,
-                               include.lowest = TRUE)
-  )
-
-ggplot(data = onset_grouped, aes(x = days_since_first_rain_groups)) +
-  geom_bar(aes(fill = as.factor(breeding_status)))
+                              include.lowest = TRUE))
   
 ggplot(data = onset_grouped, aes(x = rain_to_date_groups)) +
   geom_bar(aes(fill = as.factor(breeding_status)))
 
-ggplot(data = onset_grouped, aes(x = cum_sun_hours_groups)) +
-  geom_bar(aes(fill = as.factor(breeding_status)))
 
+cox_frailty_groups <- coxph(Surv(dayOfWY, next_survey, breeding_status) ~ 
+                             rain_to_date_groups +
+                             frailty(LocationID), 
+                           data = onset_grouped, 
+                           x = TRUE)
+summary(cox_frailty_groups)
 
 cox_model_frailty <- coxph(Surv(dayOfWY, next_survey, breeding_status) ~ 
                              rain_to_date +
-                             days_since_first_rain +
                              frailty(LocationID), 
                            data = complete_onset, 
                            x = TRUE)
 summary(cox_model_frailty)
 
-new_data_days <- expand.grid(
-  rain_to_date = mean(complete_onset$rain_to_date, na.rm = TRUE),  # Keep rain constant
-  days_since_first_rain = seq(min(complete_onset$days_since_first_rain, na.rm = TRUE),
-                              max(complete_onset$days_since_first_rain, na.rm = TRUE),
-                              length.out = 162)
-)
 
 new_data_rain <- expand.grid(
   rain_to_date = seq(min(complete_onset$rain_to_date, na.rm = TRUE),
                      max(complete_onset$rain_to_date, na.rm = TRUE),
-                     length.out = 162),
-  days_since_first_rain = mean(complete_onset$days_since_first_rain, na.rm = TRUE)
-)
+                     length.out = 162))
 
 new_data_rain$hazard_ratio <- exp(predict(cox_model_frailty, newdata = new_data_rain, type = "risk"))
-new_data_days$hazard_ratio <- exp(predict(cox_model_frailty, newdata = new_data_days, type = "risk"))
 
 main_color <- "#49741A"
 background <- "#7DC82D"
@@ -181,16 +172,9 @@ background2 <- "#91D548"
 rain_hazard_plot <- ggplot(new_data_rain, aes(x = rain_to_date, y = hazard_ratio)) +
   geom_line(color = main_color, linewidth = 1) +
   geom_hline(yintercept = 1, linetype = "dashed", color = background) +
-  labs(x = "Cumulative Rainfall", y = "Hazard Ratio") +
+  labs(x = "Cumulative Rainfall (cm)", y = "Hazard Ratio") +
   theme_bw()
 
-time_hazard_plot <- ggplot(new_data_days, aes(x = days_since_first_rain, y = hazard_ratio)) +
-  geom_line(color = main_color, linewidth = 1) +
-  geom_hline(yintercept = 1, linetype = "dashed", color = background) +
-  labs(x = "Days Since First Rainfall", y = "Hazard Ratio") +
-  theme_bw()
-
-plot_grid(rain_hazard_plot, time_hazard_plot, nrow = 1)
 
 ggforest(cox_model_frailty, data = complete_onset)
 
