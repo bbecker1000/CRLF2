@@ -20,17 +20,17 @@ setwd(here::here("code"))
 onset_of_breeding_surv <- read_csv(here::here("data", "onset_of_breeding.csv"))
 
 # scaling covariates
-scaled_within_year <- onset_of_breeding_surv %>%
-  mutate(
-    BRDYEAR_scaled = as.vector(scale(BRDYEAR)),
-    rain_to_date_scaled = as.vector(scale(rain_to_date)),
-    days_since_first_rain_scaled = as.vector(scale(days_since_first_rain)),
-    water_flow = as.factor(water_flow),
-    water_regime = as.factor(water_regime),
-    LocationID = as.factor(LocationID),
-    Watershed = as.factor(Watershed),
-    cum_sun_hours_scaled = as.vector(scale(cum_sun_hours)),
-    dir_dur_scaled = as.vector(scale(dir_dur)))
+# scaled_within_year <- onset_of_breeding_surv %>%
+#   mutate(
+#     BRDYEAR_scaled = as.vector(scale(BRDYEAR)),
+#     rain_to_date_scaled = as.vector(scale(rain_to_date)),
+#     days_since_first_rain_scaled = as.vector(scale(days_since_first_rain)),
+#     water_flow = as.factor(water_flow),
+#     water_regime = as.factor(water_regime),
+#     LocationID = as.factor(LocationID),
+#     Watershed = as.factor(Watershed),
+#     cum_sun_hours_scaled = as.vector(scale(cum_sun_hours)),
+#     dir_dur_scaled = as.vector(scale(dir_dur)))
 
 # for unscaled data
 unscaled_within_year <- onset_of_breeding_surv %>% 
@@ -41,14 +41,13 @@ unscaled_within_year <- onset_of_breeding_surv %>%
     Watershed = as.factor(Watershed))
 
 # creating a "complete case" column
-scaled_within_year$complete_case <- complete.cases(scaled_within_year)
-complete_onset <- scaled_within_year %>% filter(complete_case == TRUE) %>% select(-complete_case) %>% 
-  mutate(time2 = dayOfWY + 1)
+# scaled_within_year$complete_case <- complete.cases(scaled_within_year)
+# complete_onset <- scaled_within_year %>% filter(complete_case == TRUE) %>% select(-complete_case) %>% 
+#   mutate(time2 = dayOfWY + 1)
 
 # run only these lines to prep data for unscaled models
 unscaled_within_year$complete_case <- complete.cases(unscaled_within_year)
-complete_onset <- unscaled_within_year %>% filter(complete_case == TRUE) %>% select(-complete_case) %>% 
-  mutate(time2 = dayOfWY + 1)
+complete_onset <- unscaled_within_year %>% filter(complete_case == TRUE) %>% select(-complete_case)
 
 # sun residuals -- not using
 # sun_lm <- lm(cum_sun_hours ~ dayOfWY, data = complete_onset)
@@ -150,9 +149,9 @@ ggplot(data = onset_grouped, aes(x = cum_sun_hours_groups)) +
   geom_bar(aes(fill = as.factor(breeding_status)))
 
 
-cox_model_frailty <- coxph(Surv(dayOfWY, time2, breeding_status) ~ 
-                             rain_to_date_scaled +
-                             days_since_first_rain_scaled +
+cox_model_frailty <- coxph(Surv(dayOfWY, next_survey, breeding_status) ~ 
+                             rain_to_date +
+                             days_since_first_rain +
                              frailty(LocationID), 
                            data = complete_onset, 
                            x = TRUE)

@@ -263,17 +263,24 @@ first_rainfall <- rownames_to_column(rainfall_daily_transposed, var = "first_rai
 # getting first breeding entries for each site and year
 onset_of_breeding <- data %>% 
   select(LocationID, Watershed, BRDYEAR, dayOfWY, NumberofEggMasses, yearly_rain, yearly_rain_lag, water_flow, water_regime, interpolated_canopy, WaterTemp) %>% 
-  group_by(BRDYEAR, LocationID) %>% 
+  group_by(BRDYEAR, LocationID) %>%
+  arrange(BRDYEAR, LocationID, dayOfWY) %>% 
+  mutate(next_survey = lead(dayOfWY)) %>% 
   filter(NumberofEggMasses > 0) %>% 
   arrange(BRDYEAR, LocationID, dayOfWY) %>% 
   slice(1) %>% 
   mutate(first_breeding = dayOfWY) %>% 
-  mutate(rain_to_date = NA) %>% 
-  group_by(BRDYEAR, LocationID) %>% 
-  uncount(dayOfWY + 1, .id = "dayOfWY") %>% 
-  mutate(dayOfWY = dayOfWY - 1, # need to zero index day of water year to match
-         breeding_status = if_else(first_breeding == dayOfWY, 1, 0)) %>% 
-  left_join(., first_rainfall, by = c("BRDYEAR" = "Year"))
+  select(BRDYEAR, LocationID, first_breeding, next_survey) %>% 
+  left_join(data, by = c("BRDYEAR", "LocationID")) %>% 
+  select(LocationID, Watershed, BRDYEAR, dayOfWY, next_survey, first_breeding, NumberofEggMasses, yearly_rain, yearly_rain_lag, water_flow, water_regime, interpolated_canopy, WaterTemp) %>%
+  filter(dayOfWY <= first_breeding) %>% 
+  arrange(BRDYEAR, LocationID, dayOfWY) %>% 
+  mutate(breeding_status = if_else(first_breeding == dayOfWY, 1, 0),
+         rain_to_date = NA,
+         next_survey_2 = lead(dayOfWY),
+         next_survey = if_else(is.na(next_survey_2), next_survey, next_survey_2)) %>% 
+  select(-next_survey_2) %>% 
+  left_join(first_rainfall, by = c("BRDYEAR" = "Year"))
 
 # this can easily be optimized using the first part of the first_rainfall pipe to put rainfall
 # data into tidy format
