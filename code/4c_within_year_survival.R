@@ -1,6 +1,3 @@
-#survival analysis of first eggs detected
-#install.packages(c("survival", "survminer"))
-
 library(tidyverse)
 library(survival)
 library(survminer)
@@ -13,60 +10,24 @@ library(cowplot)
 library(riskRegression)
 library(adjustedCurves)
 
-
 #### prepping data for analysis ####
 setwd(here::here("code"))
 #rename file = unscaled
 onset_of_breeding_surv <- read_csv(here::here("data", "onset_of_breeding.csv"))
 
-# scaling covariates
-# scaled_within_year <- onset_of_breeding_surv %>%
-#   mutate(
-#     BRDYEAR_scaled = as.vector(scale(BRDYEAR)),
-#     rain_to_date_scaled = as.vector(scale(rain_to_date)),
-#     days_since_first_rain_scaled = as.vector(scale(days_since_first_rain)),
-#     water_flow = as.factor(water_flow),
-#     water_regime = as.factor(water_regime),
-#     LocationID = as.factor(LocationID),
-#     Watershed = as.factor(Watershed),
-#     cum_sun_hours_scaled = as.vector(scale(cum_sun_hours)),
-#     dir_dur_scaled = as.vector(scale(dir_dur)))
-
-# for unscaled data
 unscaled_within_year <- onset_of_breeding_surv %>% 
   mutate(
     water_flow = as.factor(water_flow),
     water_regime = as.factor(water_regime), 
     LocationID = as.factor(LocationID),
     Watershed = as.factor(Watershed)) %>% 
-  select(-interpolated_canopy, -WaterTemp) # for complete cases, lots of NA's 
+  select(-interpolated_canopy, -WaterTemp) # for complete cases, lots of NA's
 
-# creating a "complete case" column
-# scaled_within_year$complete_case <- complete.cases(scaled_within_year)
-# complete_onset <- scaled_within_year %>% filter(complete_case == TRUE) %>% select(-complete_case) %>% 
-#   mutate(time2 = dayOfWY + 1)
-
-# run only these lines to prep data for unscaled models
 unscaled_within_year$complete_case <- complete.cases(unscaled_within_year)
 complete_onset <- unscaled_within_year %>% 
   filter(complete_case == TRUE,
          next_survey > dayOfWY) %>% 
   select(-complete_case)
-
-weird_data <- complete_onset %>% 
-  filter(next_survey <= dayOfWY)
-
-# sun residuals -- not using
-# sun_lm <- lm(cum_sun_hours ~ dayOfWY, data = complete_onset)
-# sun_resid <- resid(sun_lm)
-# 
-# complete_onset <- complete_onset %>%
-#   mutate(sun_resid = sun_resid,
-#          BRDYEAR = as.factor(BRDYEAR))
-#   mutate(breeding_status = max(breeding_status))
-# 
-# complete_onset <- distinct(complete_onset, diff = paste(LocationID, dayOfWY), .keep_all = "true")
-
 
 #### *** SURVIVAL MODELS *** ####
 
@@ -131,12 +92,13 @@ ggsurvplot(
 
 #### frailty model + plots ####
 
-# group rain_to_date and days_since_first_rain into groups for survival model
-# doesn't work now that days since first rain is only positive
+# group rain_to_date into groups for survival model
 onset_grouped <- complete_onset %>% 
   mutate(
     rain_to_date_groups = cut(rain_to_date, 
-                              breaks = 10,
+                              breaks = quantile(rain_to_date, probs = 0:5 / 5, na.rm = TRUE),
+                              # breaks = 5,
+                              labels = c("low", "low_med", "med", "med_high", "high"),
                               include.lowest = TRUE))
   
 ggplot(data = onset_grouped, aes(x = rain_to_date_groups)) +
@@ -150,6 +112,31 @@ cox_frailty_groups <- coxph(Surv(dayOfWY, next_survey, breeding_status) ~
                            x = TRUE)
 summary(cox_frailty_groups)
 
+main_color <- "#49741A"
+background <- "#7DC82D"
+background2 <- "#91D548"
+
+predict_fun <- function(...) {
+  1 - predictRisk(...)
+}
+
+adjusted_curves <- adjustedsurv(
+  data = onset_grouped,
+  variable = "rain_to_date_groups",
+  ev_time = "dayOfWY",
+  event = "breeding_status",
+  method = "direct",
+  outcome_model = cox_frailty_groups,
+  predict_fun = predict_fun,
+  conf_int = TRUE
+)
+
+plot(adjusted_curves, conf.int = TRUE)
+
+# forest plot
+ggforest(cox_model_frailty, data = complete_onset)
+
+# ungrouped rain_to_date model
 cox_model_frailty <- coxph(Surv(dayOfWY, next_survey, breeding_status) ~ 
                              rain_to_date +
                              frailty(LocationID), 
@@ -169,6 +156,7 @@ main_color <- "#49741A"
 background <- "#7DC82D"
 background2 <- "#91D548"
 
+# hazard ratio for ungrouped rain to date
 rain_hazard_plot <- ggplot(new_data_rain, aes(x = rain_to_date, y = hazard_ratio)) +
   geom_line(color = main_color, linewidth = 1) +
   geom_hline(yintercept = 1, linetype = "dashed", color = background) +
@@ -178,23 +166,6 @@ rain_hazard_plot <- ggplot(new_data_rain, aes(x = rain_to_date, y = hazard_ratio
 
 ggforest(cox_model_frailty, data = complete_onset)
 
-
-predict_fun <- function(...) {
-  1 - predictRisk(...)
-}
-
-adjusted_curves <- adjustedsurv(
-  data = complete_onset,
-  variable = "rain_to_date",
-  ev_time = "dayOfWY",
-  event = "breeding_status",
-  method = "direct",
-  outcome_model = cox_model_frailty,
-  predict_fun = predict_fun
-)
-
-plot(adjusted_curves)
-
 # testing assumptions
 # to use the cox model, results of test_assumptions must not be significant
 test_cox <- cox.zph(cox_model_frailty, transform = "identity") # put desired model name here
@@ -203,14 +174,24 @@ print(test_cox)
 
 #### coxme + plots -- no longer using ####
 # coxme with random effects: rain to date + cumulative sun hours
-coxme_model <- coxme(Surv(dayOfWY, time2, breeding_status) ~ 
-                     rain_to_date +
+coxme_model <- coxme(Surv(dayOfWY, next_survey, breeding_status) ~ 
+                     rain_to_date_groups +
                      # sun_resid +
                      # cum_sun_hours +
-                     (1 | Watershed),
-                   data = complete_onset)
+                     (1 | LocationID),
+                   data = onset_grouped)
 
 summary(coxme_model)
+
+new_data <- expand_grid(rain_to_date_groups = unique(onset_grouped$rain_to_date_groups), 
+              LocationID = unique(onset_grouped$LocationID),
+              dayOfWY = seq(min(onset_grouped$dayOfWY), max(onset_grouped$dayOfWY), length.out = 100))
+
+new_data$hazard_ratio <- predict_coxme(coxme_model, newdata = new_data, type = "risk")
+
+km_fit <- survfit(Surv(dayOfWY, next_survey, breeding_status) ~ LocationID, 
+                  data = onset_grouped)
+
 
 baseline_hazard <- coxph(Surv(dayOfWY, time2, breeding_status) ~ 1,
                     data = complete_onset)
