@@ -21,7 +21,8 @@ unscaled_within_year <- onset_of_breeding_surv %>%
     water_regime = as.factor(water_regime), 
     LocationID = as.factor(LocationID),
     Watershed = as.factor(Watershed)) %>% 
-  select(-interpolated_canopy, -WaterTemp) # for complete cases, lots of NA's
+  # filter(WaterTemp > 0) %>% # getting rid of a zero in WaterTemp, will move this to data_prep
+  select(-WaterTemp) # for complete cases, lots of NA's
 
 unscaled_within_year$complete_case <- complete.cases(unscaled_within_year)
 complete_onset <- unscaled_within_year %>% 
@@ -29,88 +30,43 @@ complete_onset <- unscaled_within_year %>%
          next_survey > dayOfWY) %>% 
   select(-complete_case)
 
-#### *** SURVIVAL MODELS *** ####
-
-#intercept model of the mean
-fit.null <- survfit(Surv(dayOfWY, breeding_status) ~ 1, data = onset_of_breeding_surv)
-#survival (breeding probability) curves by watershed
-
-fit.rain <- survfit(Surv(dayOfWY, breeding_status) ~ rain_to_date, data = onset_of_breeding_surv)
-fit.sunhours <- survfit(Surv(dayOfWY, breeding_status) ~ cum_sun_hours, data = onset_of_breeding_surv)
-
-#pick one to inspect/plot
-fit <- fit.null
-fit <- fit.watershed
-fit <- fit.rain
-fit <- fit.sunhours
-
-print(fit)
-# Summary of survival curves
-summary(fit)
-# Access to the sort summary table
-summary(fit)$table
-
-#dataframe for whatever
-d <- data.frame(time = fit$time,
-                n.risk = fit$n.risk,
-                n.event = fit$n.event,
-                n.censor = fit$n.censor,
-                surv = fit$surv,
-                upper = fit$upper,
-                lower = fit$lower)
-d
-
-# plot
-ggsurvplot(
-  fit,                     # survfit object with calculated statistics.
-  pval = TRUE,             # show p-value of log-rank test.
-  conf.int = FALSE,         # show confidence intervals for 
-  risk.table = TRUE,       # Add risk table
-  risk.table.col = "strata",
-  conf.int.style = "step", #or ribbon
-  xlab = "Temp",   # customize X axis label.
-  ylab = "p(breeding)",
-  break.time.by = 1,      # break X axis in time intervals by 200.
-  ggtheme = theme_light(), # customize plot and risk table with a theme.
-  surv.median.line = "hv",  # add the median survival pointer.
-  fun = "event"             #flips plot to culumative probability
-  
-)
-
-#### *** COX MODELS *** ####
-
-## choose one
-# no random effects: rain to date + cumulative sun hours
-# cox_model_no_random <- coxph(Surv(dayOfWY, time2, breeding_status) ~
-#                      rain_to_date,
-#                      # cum_sun_hours + 
-#                      # sun_resid,
-#                    data = complete_onset)
-# summary(cox_model_no_random)
-# 
-# plot(survfit(cox_model_no_random))
-
 #### frailty model + plots ####
 
 # group rain_to_date into groups for survival model
 onset_grouped <- complete_onset %>% 
   mutate(
     rain_to_date_groups = cut(rain_to_date, 
-                              breaks = quantile(rain_to_date, probs = 0:4 / 4, na.rm = TRUE),
-                              # breaks = 5,
-                              labels = c("low", "low_med", "med_high", "high"),
-                              include.lowest = TRUE))
+                              # breaks = quantile(rain_to_date, probs = 0:5 / 5, na.rm = TRUE),
+                              # breaks = c(0, 25, 50, 75, 100, 125),
+                              breaks = 5,
+                              labels = c("Low", "low_med", "med", "med_high", "high"),
+                              include.lowest = TRUE),
+    canopy_groups = cut(interpolated_canopy, 
+                           # breaks = quantile(WaterTemp, probs = 0:5 / 5, na.rm = TRUE),
+                           # breaks = c(0, 25, 50, 75, 100, 125),
+                           breaks = 5,
+                           labels = c("Low", "low_med", "med", "med_high", "high"),
+                           include.lowest = TRUE))
   
 ggplot(data = onset_grouped, aes(x = rain_to_date_groups)) +
+  geom_bar(aes(fill = as.factor(breeding_status)))
+
+ggplot(data = onset_grouped, aes(x = canopy_groups)) +
   geom_bar(aes(fill = as.factor(breeding_status)))
 
 # frailty model with grouped rainfall data
 cox_frailty_groups <- coxph(Surv(dayOfWY, next_survey, breeding_status) ~ 
                              rain_to_date_groups +
+                             canopy_groups +
                              frailty(LocationID), 
                            data = onset_grouped, 
                            x = TRUE)
 summary(cox_frailty_groups)
+extractAIC(cox_frailty_groups)
+
+test_cox <- cox.zph(cox_frailty_groups, transform = "identity") # put desired model name here
+ggcoxzph(test_cox)
+print(test_cox)
 
 main_color <- "#49741A"
 background <- "#7DC82D"
@@ -126,8 +82,7 @@ adjusted_curves <- adjustedsurv(
   ev_time = "dayOfWY",
   event = "breeding_status",
   method = "direct",
-  bootstrap = TRUE,
-  n_boot = 1000,
+  # bootstrap = TRUE,
   conf_level = 0.89,
   outcome_model = cox_frailty_groups,
   predict_fun = predict_fun,
@@ -135,20 +90,28 @@ adjusted_curves <- adjustedsurv(
 
 plot(adjusted_curves, 
      use_boot = TRUE,
-     xlab = "Day of Water Year") +
+     cif = TRUE,
+     xlab = "Day of Water Year",
+     ylab = "Cumulative Incidence of Breeding") +
   theme_bw()
 
-# forest plot
-ggforest(cox_model_frailty, data = complete_onset)
 
 # ungrouped rain_to_date model
 cox_model_frailty <- coxph(Surv(dayOfWY, next_survey, breeding_status) ~ 
                              rain_to_date +
+                             interpolated_canopy +
                              frailty(LocationID), 
                            data = complete_onset, 
                            x = TRUE)
 summary(cox_model_frailty)
 
+
+test_cox <- cox.zph(cox_model_frailty, transform = "identity") # put desired model name here
+ggcoxzph(test_cox)
+print(test_cox)
+
+# forest plot
+ggforest(cox_model_frailty, data = complete_onset)
 
 new_data_rain <- expand.grid(
   rain_to_date = seq(min(complete_onset$rain_to_date, na.rm = TRUE),
@@ -163,17 +126,18 @@ background2 <- "#91D548"
 
 # hazard ratio for ungrouped rain to date
 rain_hazard_plot <- ggplot(new_data_rain, aes(x = rain_to_date, y = hazard_ratio)) +
-  geom_line(color = main_color, linewidth = 1) +
+  geom_line(
+  color = main_color, linewidth = 1) +
   geom_hline(yintercept = 1, linetype = "dashed", color = background) +
   labs(x = "Cumulative Rainfall (cm)", y = "Hazard Ratio") +
   theme_bw()
-
+rain_hazard_plot
 
 ggforest(cox_model_frailty, data = complete_onset)
 
 # testing assumptions
 # to use the cox model, results of test_assumptions must not be significant
-test_cox <- cox.zph(cox_model_frailty, transform = "identity") # put desired model name here
+test_cox <- cox.zph(cox_frailty_groups, transform = "identity") # put desired model name here
 ggcoxzph(test_cox)
 print(test_cox)
 
@@ -202,8 +166,7 @@ baseline_hazard <- coxph(Surv(dayOfWY, time2, breeding_status) ~ 1,
                     data = complete_onset)
 
 
-# trying to plot survival curves... not working very well right now :(
-
+#### maually plotting coxme survival curves -- keeping for reference ####
 # extract fixed effects and random effects of coxme model
 fixed_effects <- fixef(coxme_model)
 random_effects <- t(data.frame(ranef(coxme_model)$Watershed))
@@ -275,18 +238,18 @@ ggplot(plot_data, aes(x = dayOfWY, y = survival, color = random_effect)) +
 
 #### plot model -- forest plot (this one works!) ####
 
-coef <- fixef(coxme_model)
-
-coefficients <- as.data.frame(summary(coxme_model)$coefficients) %>% 
+coefficients <- as.data.frame(summary(cox_frailty_groups)$coefficients) %>% 
   rename(
-    `hazard_ratio` = `exp(coef)`,
     `se` = `se(coef)`
   ) %>% 
   mutate(
+    hazard_ratio = exp(coef),
     lower_ci = exp(coef - 1.96*se),
-    upper_ci = exp(coef + 1.96*se),
-    cov = c("Cumulative Rainfall", "Cumulative Sunlight Hours")
-  )
+    upper_ci = exp(coef + 1.96*se)
+    # cov = as.factor(c("Low-medium rainfall", "medium rainfall", "medium-high rainfall", "high rainfall", "site effect"))
+  ) %>%
+  rownames_to_column(var = "cov") %>% 
+  filter(cov != "site effect")
 
 ggplot(coefficients, aes(x = hazard_ratio, y = cov)) +
   geom_vline(xintercept = 1, linetype = "dashed", color = "red") +
@@ -295,7 +258,54 @@ ggplot(coefficients, aes(x = hazard_ratio, y = cov)) +
   labs(x = "Hazard Ratio", y = "Covariate") +
   theme_minimal()
 
-# eda plots -- trying to figure out patterns in the data
+#### *** SURVIVAL MODELS -- no longer using, keep for reference *** ####
+
+#intercept model of the mean
+fit.null <- survfit(Surv(dayOfWY, breeding_status) ~ 1, data = onset_of_breeding_surv)
+#survival (breeding probability) curves by watershed
+
+fit.rain <- survfit(Surv(dayOfWY, breeding_status) ~ rain_to_date, data = onset_of_breeding_surv)
+fit.sunhours <- survfit(Surv(dayOfWY, breeding_status) ~ cum_sun_hours, data = onset_of_breeding_surv)
+
+#pick one to inspect/plot
+fit <- fit.null
+fit <- fit.watershed
+fit <- fit.rain
+fit <- fit.sunhours
+
+print(fit)
+# Summary of survival curves
+summary(fit)
+# Access to the sort summary table
+summary(fit)$table
+
+#dataframe for whatever
+d <- data.frame(time = fit$time,
+                n.risk = fit$n.risk,
+                n.event = fit$n.event,
+                n.censor = fit$n.censor,
+                surv = fit$surv,
+                upper = fit$upper,
+                lower = fit$lower)
+d
+
+# plot
+ggsurvplot(
+  fit,                     # survfit object with calculated statistics.
+  pval = TRUE,             # show p-value of log-rank test.
+  conf.int = FALSE,         # show confidence intervals for 
+  risk.table = TRUE,       # Add risk table
+  risk.table.col = "strata",
+  conf.int.style = "step", #or ribbon
+  xlab = "Temp",   # customize X axis label.
+  ylab = "p(breeding)",
+  break.time.by = 1,      # break X axis in time intervals by 200.
+  ggtheme = theme_light(), # customize plot and risk table with a theme.
+  surv.median.line = "hv",  # add the median survival pointer.
+  fun = "event"             #flips plot to culumative probability
+  
+)
+#### eda plots -- trying to figure out patterns in the data ####
 
 ggplot(complete_onset, aes(x = dayOfWY, y = sun_resid)) + 
   geom_smooth(aes(color = LocationID), alpha = 0.4) +
@@ -319,6 +329,12 @@ water_canopy_glm <- glm(WaterTemp ~ interpolated_canopy +
 
 summary(water_canopy_glm)
 plot(water_canopy_glm)
+
+ggplot(onset_of_breeding_surv, aes(x = WaterTemp, y = interpolated_canopy)) +
+  geom_point() +
+  geom_smooth(method = "glm")
+
+cor(complete_onset$WaterTemp, complete_onset$interpolated_canopy)
 
 #TODO: trouble-shooting odd residual plots:
 #variables on their own
