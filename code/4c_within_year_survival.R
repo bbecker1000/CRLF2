@@ -96,15 +96,15 @@ ggsurvplot(
 onset_grouped <- complete_onset %>% 
   mutate(
     rain_to_date_groups = cut(rain_to_date, 
-                              breaks = quantile(rain_to_date, probs = 0:5 / 5, na.rm = TRUE),
+                              breaks = quantile(rain_to_date, probs = 0:4 / 4, na.rm = TRUE),
                               # breaks = 5,
-                              labels = c("low", "low_med", "med", "med_high", "high"),
+                              labels = c("low", "low_med", "med_high", "high"),
                               include.lowest = TRUE))
   
 ggplot(data = onset_grouped, aes(x = rain_to_date_groups)) +
   geom_bar(aes(fill = as.factor(breeding_status)))
 
-
+# frailty model with grouped rainfall data
 cox_frailty_groups <- coxph(Surv(dayOfWY, next_survey, breeding_status) ~ 
                              rain_to_date_groups +
                              frailty(LocationID), 
@@ -126,12 +126,17 @@ adjusted_curves <- adjustedsurv(
   ev_time = "dayOfWY",
   event = "breeding_status",
   method = "direct",
+  bootstrap = TRUE,
+  n_boot = 1000,
+  conf_level = 0.89,
   outcome_model = cox_frailty_groups,
   predict_fun = predict_fun,
-  conf_int = TRUE
 )
 
-plot(adjusted_curves, conf.int = TRUE)
+plot(adjusted_curves, 
+     use_boot = TRUE,
+     xlab = "Day of Water Year") +
+  theme_bw()
 
 # forest plot
 ggforest(cox_model_frailty, data = complete_onset)
