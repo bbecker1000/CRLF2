@@ -61,6 +61,10 @@ cox_frailty_groups <- coxph(Surv(dayOfWY, next_survey, breeding_status) ~
                              frailty(LocationID), 
                            data = onset_grouped, 
                            x = TRUE)
+
+
+
+
 summary(cox_frailty_groups)
 extractAIC(cox_frailty_groups)
 
@@ -97,14 +101,29 @@ plot(adjusted_curves,
 
 
 # ungrouped rain_to_date model
-cox_model_frailty <- coxph(Surv(dayOfWY, next_survey, breeding_status) ~ 
+rain_model <- coxph(Surv(dayOfWY, next_survey, breeding_status) ~ 
                              rain_to_date +
-                             interpolated_canopy +
+                             # interpolated_canopy +
                              frailty(LocationID), 
                            data = complete_onset, 
                            x = TRUE)
-summary(cox_model_frailty)
 
+# alt models with rain to date or sun hours
+sun_model <- coxph(Surv(dayOfWY, next_survey, breeding_status) ~ 
+              cum_sun_hours +
+              frailty(LocationID), 
+            data = complete_onset, 
+            x = TRUE)
+
+days_model <- coxph(Surv(dayOfWY, next_survey, breeding_status) ~ 
+              days_since_first_rain +
+              frailty(LocationID), 
+            data = complete_onset, 
+            x = TRUE)
+
+Cand.mods <- list("Cumulative Rainfall Model" = rain_model, "Sun Hours Model" = sun_model, "Days Since First Rain Model" = days_model)
+
+aictab(cand.set = Cand.mods)
 
 test_cox <- cox.zph(cox_model_frailty, transform = "identity") # put desired model name here
 ggcoxzph(test_cox)
