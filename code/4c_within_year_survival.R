@@ -57,9 +57,12 @@ ggplot(data = onset_grouped, aes(x = canopy_groups)) +
 # frailty model with grouped rainfall data
 cox_frailty_groups <- coxph(Surv(dayOfWY, next_survey, breeding_status) ~ 
                              rain_to_date_groups +
-                             canopy_groups +
+                             # canopy_groups +
+                             # water_flow +
+                             water_regime +
                              frailty(LocationID), 
                            data = onset_grouped, 
+                           control = coxph.control(iter.max = 50),
                            x = TRUE)
 
 
