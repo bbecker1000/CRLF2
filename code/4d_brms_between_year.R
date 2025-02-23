@@ -141,8 +141,7 @@ color_scheme_set(palette_green)
 # forest plot
 mcmc_intervals(posterior, point_est = "mean", prob = 0.89, prob_outer = 0.89,
                inner_size = 1, 
-               point_size = 3,
-               point_args = list(shape = 21, fill = "white", color = "black", stroke = 1),
+               point_size = 2,
                pars = c(
                  "b_water_flowlentic",
                  "b_yearly_rain_scaled:water_regimeseasonal",

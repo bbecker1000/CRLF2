@@ -22,7 +22,7 @@ unscaled_within_year <- onset_of_breeding_surv %>%
     LocationID = as.factor(LocationID),
     Watershed = as.factor(Watershed)) %>% 
   # filter(WaterTemp > 0) %>% # getting rid of a zero in WaterTemp, will move this to data_prep
-  select(-WaterTemp) # for complete cases, lots of NA's
+  select(-WaterTemp, -interpolated_canopy) # for complete cases, lots of NA's
 
 unscaled_within_year$complete_case <- complete.cases(unscaled_within_year)
 complete_onset <- unscaled_within_year %>% 
@@ -40,13 +40,13 @@ onset_grouped <- complete_onset %>%
                               breaks = c(0, 25, 50, 75, 100, 125),
                               # breaks = 5,
                               labels = c("0 - 25 cm", "25 - 50 cm", "50 - 75 cm", "75 - 100 cm", "100 - 125 cm"),
-                              include.lowest = TRUE),
-    canopy_groups = cut(interpolated_canopy,
-                           # breaks = quantile(WaterTemp, probs = 0:5 / 5, na.rm = TRUE),
-                           breaks = c(0, 1, 25, 50, 75, 100),
-                           # breaks = 5,
-                           labels = c("0%", "1 - 25%", "26 - 50%", "51 -75%", "75 - 100%"),
-                           include.lowest = TRUE))
+                              include.lowest = TRUE))
+    # canopy_groups = cut(interpolated_canopy,
+    #                        # breaks = quantile(WaterTemp, probs = 0:5 / 5, na.rm = TRUE),
+    #                        breaks = c(0, 1, 25, 50, 75, 100),
+    #                        # breaks = 5,
+    #                        labels = c("0%", "1 - 25%", "26 - 50%", "51 -75%", "75 - 100%"),
+    #                        include.lowest = TRUE))
   
 ggplot(data = onset_grouped, aes(x = rain_to_date_groups)) +
   geom_bar(aes(fill = as.factor(breeding_status)))
@@ -60,7 +60,7 @@ ggplot(data = onset_grouped, aes(x = canopy_groups)) +
 # frailty model with grouped rainfall data
 cox_frailty_groups <- coxph(Surv(dayOfWY, next_survey, breeding_status) ~ 
                              rain_to_date_groups +
-                             canopy_groups +
+                             # canopy_groups +
                              # water_flow +
                              # water_regime +
                              frailty(LocationID), 
@@ -103,7 +103,7 @@ predict_fun <- function(...) {
 
 adjusted_curves <- adjustedsurv(
   data = onset_grouped,
-  variable = "canopy_groups",
+  variable = "rain_to_date_groups",
   ev_time = "dayOfWY",
   event = "breeding_status",
   method = "direct",
