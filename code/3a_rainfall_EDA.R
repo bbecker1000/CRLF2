@@ -116,3 +116,5 @@ ggscatter(rain_to_compare_wide, x = "corte_madera", y = "muir_woods",
 summary(lm(corte_madera ~ muir_woods, data = rain_to_compare_after_missing_data))
 
 summary(lm(half_moon_bay ~ corte_madera, data = rain_to_compare_after_missing_data))
+
+cor(rain_to_compare_after_missing_data$corte_madera, rain_to_compare_after_missing_data$half_moon_bay)

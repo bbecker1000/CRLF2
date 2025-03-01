@@ -68,6 +68,7 @@ cox_frailty_groups <- coxph(Surv(dayOfWY, next_survey, breeding_status) ~
                            control = coxph.control(iter.max = 50),
                            x = TRUE)
 
+
 summary(cox_frailty_groups)
 extractAIC(cox_frailty_groups)
 

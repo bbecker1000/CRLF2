@@ -128,6 +128,15 @@ data <- unfiltered_data %>%
 
 write_csv(data, here::here("data", "filtered_raw_data.csv"))
 
+
+counts <- data %>% group_by(LocationID) %>% 
+    summarise(
+      count = n()
+    )
+
+ggplot(data = counts, aes(x = count)) +
+  geom_histogram()
+
 #### ~~~ *** BETWEEN YEAR DATA *** ~~~ ####
 
 between_year_data <- data %>% 
