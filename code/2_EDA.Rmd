@@ -67,6 +67,8 @@ count(data, LocationID)
 
 # plots
 
+### lagged egg masses
+
 ```{r lagged_eggs}
 between_year_data_lagged <- between_year_data %>%
   group_by(LocationID) %>%
@@ -560,6 +562,12 @@ abundance_counts <- data %>%
   group_by(Watershed, BRDYEAR) %>%
   summarize(survey_count = n_distinct(EventGUID))
 abundance_counts
+
+# table: num surveys per site over entire study period
+abundance_counts_sites <- data %>% 
+  group_by(LocationID) %>% 
+  summarize(survey_count = n_distinct(EventGUID))
+view(abundance_counts_sites)
 ```
 
 ```{r survey_counts}
