@@ -535,7 +535,6 @@ number_of_sites_within_watershed <- data %>%
   group_by(Watershed) %>% 
   summarize(distinct_count = n_distinct(LocationID))
 number_of_sites_within_watershed
-view(number_of_sites_within_watershed)
 
 as.data.frame(number_of_sites_within_watershed)
 sum(number_of_sites_within_watershed$distinct_count)
@@ -543,6 +542,25 @@ sum(number_of_sites_within_watershed$distinct_count)
 #plot of the above table.
 ggplot(number_of_sites_within_watershed,aes(x=Watershed,y=distinct_count))+
   geom_point()
+
+# what is the list of sites?
+## unfiltered data (i.e. visited 1x)
+
+## filtered data
+all_site_list <- data %>% group_by(LocationID) %>% 
+  summarise(n=n()) %>% 
+  select(n)
+
+## between year model
+btw_site_list <- complete_btw_data %>% group_by(LocationID) %>% 
+  summarise(n=n()) %>% 
+  select(n)
+
+## within year model
+within_site_list <- complete_onset %>% group_by(LocationID) %>% 
+  summarise(n=n()) %>% 
+  select(n)
+
 ```
 
 #### survey counts
