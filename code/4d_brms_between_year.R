@@ -71,7 +71,10 @@ pred_unscaled <- pred %>%
   mutate(
     interpolated_canopy_unscaled = (interpolated_canopy_scaled * col_sd$interpolated_canopy) + col_means$interpolated_canopy,
     BRDYEAR_unscaled = (BRDYEAR_scaled * col_sd$BRDYEAR) + col_means$BRDYEAR,
-    mean_percent_water_unscaled = (mean_percent_water_scaled * col_sd$mean_percent_water) + col_means$mean_percent_water
+    mean_percent_water_unscaled = (mean_percent_water_scaled * col_sd$mean_percent_water) + col_means$mean_percent_water,
+    lagged_rain_unscaled = (yearly_rain_lag_scaled * col_sd$yearly_rain_lag) + col_means$yearly_rain_lag,
+    mean_percent_sub_unscaled = (mean_percent_sub_scaled * col_sd$mean_percent_sub) + col_means$mean_percent_sub,
+    rain_unscaled = (yearly_rain_scaled * col_sd$yearly_rain) + col_means$yearly_rain
   )
 
 # color palette because i want the plots to look pretty
@@ -116,8 +119,37 @@ year_plot <- ggplot(pred_unscaled, aes(x = BRDYEAR_unscaled, y = estimate)) +
   geom_line(stat = "smooth", color = main_color, linewidth = 1.5) +
   labs(x = "Water year", y = " ")
 
-plot_grid(canopy_plot, water_plot, year_plot, nrow = 1)
+# lagged yearly rain -- almost significant
+lag_rain_plot <- ggplot(pred_unscaled, aes(x = lagged_rain_unscaled, y = estimate)) +
+  scale_y_continuous(limits = c(-1, 175)) +
+  theme_bw() +
+  geom_point(aes(y = num_egg_masses), color = background, alpha = 0.035) +
+  geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
+  geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
+  geom_line(stat = "smooth", color = main_color, linewidth = 1.5) +
+  labs(x = "Lagged yearly rainfall (cm)", y = "Number of egg masses")
 
+# percent submergent vegetation -- almost significant
+sub_veg_plot <- ggplot(pred_unscaled, aes(x = mean_percent_sub_unscaled, y = estimate)) +
+  scale_y_continuous(limits = c(-1, 175)) +
+  theme_bw() +
+  geom_point(aes(y = num_egg_masses), color = background, alpha = 0.035) +
+  geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
+  geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
+  geom_line(stat = "smooth", color = main_color, linewidth = 1.5) +
+  labs(x = "Percent submergent vegetation", y = " ")
+
+# interaction between rain and water regime -- almost significant
+rain_interaction_plot <- ggplot(pred_unscaled, aes(x = rain_unscaled, y = estimate)) +
+  scale_y_continuous(limits = c(-1, 175)) +
+  theme_bw() +
+  geom_point(aes(y = num_egg_masses, color = water_regime), alpha = 0.035) +
+  geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
+  geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
+  geom_line(stat = "smooth", linewidth = 1.5, aes(color = water_regime), alpha = 0.85) +
+  labs(x = "Yearly rainfall (cm)", y = "Number of egg masses", color = "Water regime")
+
+plot_grid(canopy_plot, water_plot, sub_veg_plot, lag_rain_plot, year_plot, nrow = 2, align = "hv")
 
 # geom_smooth()# using sjPlot
 conditional_effects(mod.zi.no.salinity.linear, surface = FALSE, prob = 0.89)

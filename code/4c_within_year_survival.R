@@ -21,8 +21,7 @@ unscaled_within_year <- onset_of_breeding_surv %>%
     water_regime = as.factor(water_regime), 
     LocationID = as.factor(LocationID),
     Watershed = as.factor(Watershed)) %>% 
-  # filter(WaterTemp > 0) %>% # getting rid of a zero in WaterTemp, will move this to data_prep
-  select(-WaterTemp, -interpolated_canopy) # for complete cases, lots of NA's
+  select(-WaterTemp) # for complete cases, lots of NA's
 
 unscaled_within_year$complete_case <- complete.cases(unscaled_within_year)
 complete_onset <- unscaled_within_year %>% 
@@ -40,13 +39,13 @@ onset_grouped <- complete_onset %>%
                               breaks = c(0, 25, 50, 75, 100, 125),
                               # breaks = 5,
                               labels = c("0 - 25 cm", "25 - 50 cm", "50 - 75 cm", "75 - 100 cm", "100 - 125 cm"),
-                              include.lowest = TRUE))
-    # canopy_groups = cut(interpolated_canopy,
-    #                        # breaks = quantile(WaterTemp, probs = 0:5 / 5, na.rm = TRUE),
-    #                        breaks = c(0, 1, 25, 50, 75, 100),
-    #                        # breaks = 5,
-    #                        labels = c("0%", "1 - 25%", "26 - 50%", "51 -75%", "75 - 100%"),
-    #                        include.lowest = TRUE))
+                              include.lowest = TRUE),
+    canopy_groups = cut(interpolated_canopy,
+                           # breaks = quantile(WaterTemp, probs = 0:5 / 5, na.rm = TRUE),
+                           breaks = c(0, 1, 25, 50, 75, 100),
+                           # breaks = 5,
+                           labels = c("0%", "1 - 25%", "26 - 50%", "51 -75%", "75 - 100%"),
+                           include.lowest = TRUE))
   
 ggplot(data = onset_grouped, aes(x = rain_to_date_groups)) +
   geom_bar(aes(fill = as.factor(breeding_status)))
@@ -69,7 +68,7 @@ cox_frailty_groups <- coxph(Surv(dayOfWY, next_survey, breeding_status) ~
                            x = TRUE)
 
 
-summary(cox_frailty_groups)
+summary(cox_frailty_groups, conf.int = 0.89)
 extractAIC(cox_frailty_groups)
 
 test_cox <- cox.zph(cox_frailty_groups, transform = "identity") # put desired model name here
@@ -91,11 +90,11 @@ palette_blue <- c(
   "#004F8F")
 
 palette_brown <- c(
-  "#FFB238",
-  "#FFA10A",
-  "#CC7E00",
-  "#8F5800",
-  "#523200")
+  "#B6AFA4",
+  "#9B9182",
+  "#7D7364",
+  "#5B5349",
+  "#FFB238")
 
 
 predict_fun <- function(...) {
@@ -126,11 +125,15 @@ plot(adjusted_curves,
 plot(adjusted_curves, 
      use_boot = TRUE,
      cif = TRUE,
+     # custom_linetypes = c(3,3,3,3,1),
      xlab = "Day of Water Year",
      ylab = "Cumulative Incidence of Breeding",
+     legend.title = NULL,
+     legend.position = NULL,
      custom_colors = palette_brown) +
   theme_bw() +
   labs(color = "Canopy Cover")
+  # scale_linetype_manual(values = c(3,3,3,3,1), name = NULL, labels = NULL)
 
 # ungrouped rain_to_date model
 rain_model <- coxph(Surv(dayOfWY, next_survey, breeding_status) ~ 

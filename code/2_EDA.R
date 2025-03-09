@@ -4,6 +4,25 @@ source("1_data_prep.R")
 
 # plotting number of eggs seen by water visibility
 
+total_sites <- data %>% group_by(LocationID) %>% 
+  summarise(n = n()) %>% 
+  select(LocationID)
+
+sites_in_within_year <- complete_onset %>% group_by(LocationID) %>% 
+  summarise(n = n()) %>% 
+  select(LocationID)
+
+sites_in_between_year <- scaled_between_year %>% group_by(LocationID) %>% 
+  summarise(n = n()) %>% 
+  select(LocationID)
+
+total_sites <- total_sites %>% 
+  mutate(in_within = LocationID %in% sites_in_within_year$LocationID,
+         in_between = LocationID %in% sites_in_between_year$LocationID,
+         in_neither = !in_within & !in_between) %>% 
+  select(in_neither)
+  
+
 data_wv <- data %>% 
   mutate(WaterVis = as.factor(if_else(WaterVis >= 0.3, "high", "low", missing = "missing"))) %>% 
   group_by(WaterVis) %>% 
