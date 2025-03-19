@@ -69,7 +69,7 @@ count(data, LocationID)
 
 ```{r}
 summary <- data %>%
-  select(yearly_rain, yearly_rain_lag, mean_percent_water, mean_percent_sub, interpolated_canopy, WaterTemp, MaxD, WaterSalinity, AirTemp) %>%
+  select(BRDYEAR, yearly_rain, yearly_rain_lag, mean_percent_water, mean_percent_sub, interpolated_canopy, WaterTemp, MaxD, WaterSalinity, AirTemp) %>%
   summarise(
     across(everything(), list(min = ~min(., na.rm = TRUE), 
                               max = ~max(., na.rm = TRUE), 
@@ -81,6 +81,10 @@ summary <- data %>%
                names_pattern = "(.*)_(.*)", 
                values_to = "Value") %>%
   pivot_wider(names_from = Stat, values_from = Value)
+
+num_sites <- data %>% summarise(total_locationIDs = n_distinct(LocationID))
+num_watershed <- data %>% summarise(total_watersheds = n_distinct(Watershed))
+
 ```
 
 # plots
@@ -566,18 +570,18 @@ ggplot(number_of_sites_within_watershed,aes(x=Watershed,y=distinct_count))+
 
 ## filtered data
 all_site_list <- data %>% group_by(LocationID) %>% 
-  summarise(n=n()) %>% 
-  select(n)
+  summarise(n=n())  %>% 
+  select(LocationID)
 
 ## between year model
 btw_site_list <- complete_btw_data %>% group_by(LocationID) %>% 
   summarise(n=n()) %>% 
-  select(n)
+  select(LocationID)
 
 ## within year model
 within_site_list <- complete_onset %>% group_by(LocationID) %>% 
-  summarise(n=n()) %>% 
-  select(n)
+  summarise(n=n())  %>% 
+  select(LocationID)
 
 ```
 
