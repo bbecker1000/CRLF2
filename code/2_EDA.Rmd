@@ -437,6 +437,34 @@ complete_btw_data %>% ggplot(aes(x=interpolated_canopy, y=mean_percent_emerg))+
 
 ## eggs
 
+#### final plots
+
+```{r eggs_site_watershed}
+# by watershed
+ggplot(data=between_year_data, mapping=aes(x=BRDYEAR,y=num_egg_masses)) +
+    stat_summary(
+    fun = "sum",
+    geom = "point",
+    color = "darkolivegreen4",
+    size = 1.5
+  ) +
+  facet_wrap( ~ Watershed) +
+  labs(title="Annual Egg Masses by Watershed", x = "Year", y = " Egg Masses")
+
+# by site
+ggplot(data=between_year_data, mapping=aes(x=BRDYEAR,y=num_egg_masses)) +
+    stat_summary(
+    fun = "sum",
+    geom = "point",
+    color = "cornflowerblue",
+    size = 1.5
+  ) +
+  facet_wrap( ~ LocationID) +
+  labs(title="Annual Egg Masses by Site", x = "Year", y = " Egg Masses")
+```
+
+#### below = exploratory, older
+
 ```{r mean_NEW_eggs}
 #I made a new "data_after2009"data set and plot the trend line using is, instead of the full "data". (since 2000-2005 all have 0 egg masses, and there are no records from 2009 to 2009)
 data_after2009 <- data|> 
@@ -476,14 +504,27 @@ ggplot(data = data_after2009,mapping = aes(x = BRDYEAR, y = NumberofEggMasses))+
 
 ```{r mean_NEW_eggs}
 #plot of total egg masses over time per Watershed
-ggplot(data = data_after2009,mapping = aes(x = BRDYEAR, y = NumberofEggMasses))+ 
-  stat_summary(fun = "sum",geom = "point", color = "black", size= 2) + facet_wrap(~Watershed)+
+ggplot(data = data_after2009,
+       mapping = aes(x = BRDYEAR, y = NumberofEggMasses)) +
+  stat_summary(
+    fun = "sum",
+    geom = "point",
+    color = "black",
+    size = 2
+  ) +
+  facet_wrap( ~ Watershed) +
   labs(x = "Year", y = "total new egg masses")
 
 #plot of total egg masses over time per site
-ggplot(data = data_after2009)+ 
-  stat_summary(mapping = aes(x = BRDYEAR, y = NumberofEggMasses),
-               fun = "sum",geom = "point",color = "black", size= 2) + facet_wrap(~LocationID)+
+ggplot(data = data_after2009) +
+  stat_summary(
+    mapping = aes(x = BRDYEAR, y = NumberofEggMasses),
+    fun = "sum",
+    geom = "point",
+    color = "black",
+    size = 2
+  ) +
+  facet_wrap( ~ LocationID) +
   labs(x = "Year", y = "total new egg masses")
 
 ## above with size of point = survey_count (per site)
