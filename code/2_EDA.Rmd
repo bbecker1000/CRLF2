@@ -461,6 +461,23 @@ ggplot(data=between_year_data, mapping=aes(x=BRDYEAR,y=num_egg_masses)) +
   ) +
   facet_wrap( ~ LocationID) +
   labs(title="Annual Egg Masses by Site", x = "Year", y = " Egg Masses")
+
+## possible idea: having each watershed with each site having own line within?
+RC_test <- between_year_data %>% 
+  filter(Watershed=='Redwood Creek')
+
+### method - loess
+ggplot(data=RC_test, mapping=aes(x=BRDYEAR,y=num_egg_masses,color=LocationID)) +
+  geom_point()+
+  geom_smooth(method="loess",se=FALSE, size=0.3)+
+  theme_minimal()
+
+### method - gam
+ggplot(data=RC_test, mapping=aes(x=BRDYEAR,y=num_egg_masses,color=LocationID)) +
+  geom_point()+
+  geom_smooth(method="gam",se=FALSE, size=0.3)+
+  theme_minimal()
+  
 ```
 
 #### below = exploratory, older
