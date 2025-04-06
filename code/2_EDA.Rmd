@@ -441,15 +441,24 @@ complete_btw_data %>% ggplot(aes(x=interpolated_canopy, y=mean_percent_emerg))+
 
 ```{r eggs_site_watershed}
 # by watershed
-ggplot(data=between_year_data, mapping=aes(x=BRDYEAR,y=num_egg_masses)) +
-    stat_summary(
+eggs_watershed <- ggplot(data = between_year_data, mapping = aes(x = BRDYEAR, y = num_egg_masses)) +
+  stat_summary(
     fun = "sum",
     geom = "point",
     color = "darkolivegreen4",
     size = 1.5
   ) +
-  facet_wrap( ~ Watershed) +
-  labs(title="Annual Egg Masses by Watershed", x = "Year", y = " Egg Masses")
+  facet_wrap(~ Watershed) +
+  labs(title = "Annual Egg Masses by Watershed", x = "Year", y = "Egg Masses") +
+  theme(panel.background = element_blank(),  # Remove the grey panel background
+    plot.background = element_blank(),   # Remove the plot background
+    panel.grid.major = element_line(color = "grey", size = 0.25),  # Keep major gridlines
+    # panel.grid.minor = element_line(color = "lightgrey", size = 0.25)  # Keep minor gridlines
+  )
+eggs_watershed
+
+## with lines
+eggs_watershed + geom_smooth(method="loess",se=FALSE, size=0.5)
 
 # by site
 ggplot(data=between_year_data, mapping=aes(x=BRDYEAR,y=num_egg_masses)) +
