@@ -48,15 +48,11 @@ rodeo_temps <- read_csv(here::here("data", "watertemp_rodeo.csv")) %>%
 band_surveys <- read_csv(here::here("data", "onset_of_breeding.csv")) %>% 
   filter(LocationID == "RC07") %>% 
   mutate(beginning_WY = paste0(BRDYEAR-1, "1001"),
-         beginning_WY = ymd(beginning_WY),
-         breeding_date = beginning_WY + ddays(first_breeding)) %>% 
-  select(-MaxD, -MaxD_proportion, -MaxD_yearly, -WaterTemp, -AirTemp, -Watershed)
+         beginning_WY = ymd(beginning_WY))
 rodeo_surveys <- read_csv(here::here("data", "onset_of_breeding.csv")) %>% 
   filter(LocationID == "RL02") %>% 
   mutate(beginning_WY = paste0(BRDYEAR-1, "1001"),
-         beginning_WY = ymd(beginning_WY),
-         breeding_date = beginning_WY + ddays(first_breeding)) %>% 
-  select(-MaxD, -MaxD_proportion, -MaxD_yearly, -WaterTemp, -AirTemp, -Watershed)
+         beginning_WY = ymd(beginning_WY))
 
 
 # joining temperature data to breeding data

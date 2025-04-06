@@ -47,7 +47,7 @@ unfiltered_data <- raw_data %>% select(-ParkCode, -ProjectCode, -BTime, -TTime, 
   mutate(Survey_MONTH = as.integer(format(Date, "%m"))) %>%
   mutate(LocationID = as.factor(LocationID), Watershed = as.factor(Watershed), Date = as.Date(Date), Obsv1 = as.factor(Obsv1), Obsv2 = as.factor(Obsv2), Obsv3 = as.factor(Obsv3), 
          Weather = as.factor(Weather), Wind = as.integer(Wind), HabType= as.factor(HabType), SurveyMethodID = as.integer(SurveyMethodID), SalinityMethodID = as.integer(SalinityMethodID), 
-         WaterFlowID = as.integer(WaterFlowID), MassID = as.integer(MassID), NumberofEggMasses = as.integer(NumberofEggMasses), BRDYEAR = as.integer(BRDYEAR)) %>%
+         WaterFlowID = as.integer(WaterFlowID), MassID = as.integer(MassID), NumberofEggMasses = as.integer(NumberofEggMasses), BRDYEAR = as.integer(BRDYEAR), DrySurvey = as.logical(DrySurvey)) %>%
   mutate(
     beginningWY = case_when(
       month(Date) > 9 ~ floor_date(Date, unit = "year") + months(9),
@@ -57,7 +57,7 @@ unfiltered_data <- raw_data %>% select(-ParkCode, -ProjectCode, -BTime, -TTime, 
   mutate(dayOfWY = as.numeric(Date - beginningWY)) %>% # adds column for number of days after the beginning of the water year
   mutate(CoastalSite = if_else((LocationID == "LS01" | LocationID == "LS02" | LocationID == "LS03" | LocationID == "LS04" | LocationID == "LS08" | LocationID == "LS11" | 
                                   LocationID == "RC14" | LocationID == "RC20" | LocationID == "RC21" | LocationID == "RL04" | LocationID == "RL05" | LocationID == "TV06" | LocationID == "WG01"), TRUE, FALSE)) %>% 
-  mutate(WaterSalinity = if_else(!CoastalSite & is.na(WaterSalinity), 0, WaterSalinity)) %>% 
+  # mutate(WaterSalinity = if_else(!CoastalSite & is.na(WaterSalinity), 0, WaterSalinity)) %>% 
   group_by(EggCountGUID) %>% 
   mutate(obsv_total = sum(!is.na(Obsv1), !is.na(Obsv2), !is.na(Obsv3))) %>% 
   ungroup() %>% 
@@ -146,25 +146,26 @@ between_year_data <- data %>%
   summarize(
          mean_max_depth = ifelse(all(is.na(MaxD)), NA, mean(MaxD, na.rm = TRUE)),
          max_depth = ifelse(all(is.na(MaxD)), NA, max(MaxD, na.rm = TRUE)),
-         mean_salinity = ifelse(all(is.na(WaterSalinity)), NA, mean(WaterSalinity, na.rm = TRUE)),
-         max_salinity = ifelse(all(is.na(WaterSalinity)), NA, max(WaterSalinity, na.rm = TRUE)),
+         # mean_salinity = ifelse(all(is.na(WaterSalinity)), NA, mean(WaterSalinity, na.rm = TRUE)),
+         # max_salinity = ifelse(all(is.na(WaterSalinity)), NA, max(WaterSalinity, na.rm = TRUE)),
          AirTemp = ifelse(all(is.na(AirTemp)), NA, mean(AirTemp, na.rm = TRUE)),
          WaterTemp = ifelse(all(is.na(WaterTemp)), NA, mean(WaterTemp, na.rm = TRUE)),
          num_egg_masses = sum(NumberofEggMasses, na.rm = TRUE), 
          mean_percent_sub = ifelse(all(is.na(ground_sub)), NA, mean(ground_sub, na.rm = TRUE)),
          mean_percent_emerg = ifelse(all(is.na(ground_emerg)), NA, mean(ground_emerg, na.rm = TRUE)),
          mean_percent_water = ifelse(all(is.na(ground_open_water)), NA, mean(ground_open_water, na.rm = TRUE)),
-         dry_year = ifelse(all(DrySurvey), TRUE, FALSE),
+         dry_year = if_else(all(DrySurvey), TRUE, FALSE),
          proportion_high_water_vis = sum(WaterVis, na.rm = TRUE) / (n() - sum(is.na(WaterVis))),
          proportion_na_water_vis = sum(is.na(WaterVis)) / n(),
          proportion_high_water_vis = if_else(is.nan(proportion_high_water_vis), 0, proportion_high_water_vis),
          across(everything(), ~first(.))) %>% 
   select(-MaxD, -WaterSalinity, -NumberofEggMasses, -ground_sub, -ground_emerg, -ground_open_water, -DrySurvey) %>% 
-  mutate(mean_salinity = if_else(CoastalSite, mean_salinity, 0),
-         max_salinity = if_else(CoastalSite, max_salinity, 0),
+  mutate(
+    # mean_salinity = if_else(CoastalSite, mean_salinity, 0),
+         # max_salinity = if_else(CoastalSite, max_salinity, 0),
          LocationID = as.factor(LocationID),
          Watershed = as.factor(Watershed)) %>% 
-  select(-max_salinity, -mean_salinity) %>% # deleting salinity from between year
+  # select(-max_salinity, -mean_salinity) %>% # deleting salinity from between year
   ungroup()
 
 between_year_data$complete_case <- complete.cases(between_year_data)
@@ -394,4 +395,5 @@ within_year_with_sun_hours <- left_join(onset_of_breeding, sun_hours, by = c("Lo
 
 # write to CSV
 write_csv(within_year_with_sun_hours, here::here("data", "onset_of_breeding_gam.csv"))
+
 
