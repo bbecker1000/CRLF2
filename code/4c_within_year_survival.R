@@ -59,7 +59,7 @@ ggplot(data = onset_grouped, aes(x = canopy_groups)) +
 # frailty model with grouped rainfall data
 cox_frailty_groups <- coxph(Surv(dayOfWY, next_survey, breeding_status) ~ 
                              rain_to_date_groups +
-                             # canopy_groups +
+                             canopy_groups +
                              # water_flow +
                              # water_regime +
                              frailty(LocationID), 
@@ -103,7 +103,7 @@ predict_fun <- function(...) {
 
 adjusted_curves <- adjustedsurv(
   data = onset_grouped,
-  variable = "rain_to_date_groups",
+  variable = "canopy_groups",
   ev_time = "dayOfWY",
   event = "breeding_status",
   method = "direct",

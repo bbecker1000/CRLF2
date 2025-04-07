@@ -2,14 +2,19 @@ library(brms)
 library(lme4)
 library(marginaleffects)
 library(cowplot)
+library(bayesplot)
+library(sjPlot)
+library(cowplot)
 
-scaled_between_year <- read_csv(here::here("data", "scaled_between_year.csv"))
+scaled_between_year <- read_csv(here::here("data", "scaled_between_year.csv")) %>% 
+  mutate(BRDYEAR_uncentered = BRDYEAR - 2002)
 
 # ZI linear model
 ##### priors: bprior.no.sal.linear.zi ####
 bprior.no.sal.linear.zi <- c(
   #counts
-  prior(normal(0, 0.5), coef = BRDYEAR_scaled), 
+  # prior(normal(0, 0.5), coef = BRDYEAR_scaled), 
+  prior(normal(0, 0.5), coef = BRDYEAR_uncentered), 
   prior(normal(-0.5, 0.5), coef = interpolated_canopy_scaled), 
   prior(normal(0.25, 0.5), coef = mean_percent_sub_scaled), 
   prior(normal(0.0, 0.5), coef = mean_percent_water_scaled), # add squared term
@@ -30,7 +35,8 @@ bprior.no.sal.linear.zi <- c(
 ##### model: mod.zi.no.salinity.linear ####
 mod.zi.no.salinity.linear <- brm(
   num_egg_masses ~ 
-       BRDYEAR_scaled + 
+       # BRDYEAR_scaled + 
+       BRDYEAR_uncentered +
        mean_percent_water_scaled + 
        interpolated_canopy_scaled +
        WaterTemp_scaled +  
@@ -70,7 +76,8 @@ col_sd <- read_csv(here::here("data", "between_year_col_sd.csv"))
 pred_unscaled <- pred %>% 
   mutate(
     interpolated_canopy_unscaled = (interpolated_canopy_scaled * col_sd$interpolated_canopy) + col_means$interpolated_canopy,
-    BRDYEAR_unscaled = (BRDYEAR_scaled * col_sd$BRDYEAR) + col_means$BRDYEAR,
+    # BRDYEAR_unscaled = (BRDYEAR_scaled * col_sd$BRDYEAR) + col_means$BRDYEAR,
+    BRDYEAR_unscaled = BRDYEAR_uncentered + 2003,
     mean_percent_water_unscaled = (mean_percent_water_scaled * col_sd$mean_percent_water) + col_means$mean_percent_water,
     lagged_rain_unscaled = (yearly_rain_lag_scaled * col_sd$yearly_rain_lag) + col_means$yearly_rain_lag,
     mean_percent_sub_unscaled = (mean_percent_sub_scaled * col_sd$mean_percent_sub) + col_means$mean_percent_sub,
@@ -149,7 +156,7 @@ rain_interaction_plot <- ggplot(pred_unscaled, aes(x = rain_unscaled, y = estima
   geom_line(stat = "smooth", linewidth = 1.5, aes(color = water_regime), alpha = 0.85) +
   labs(x = "Yearly rainfall (cm)", y = "Number of egg masses", color = "Water regime")
 
-plot_grid(canopy_plot, water_plot, sub_veg_plot, lag_rain_plot, year_plot, nrow = 2, align = "hv")
+cowplot::plot_grid(canopy_plot, water_plot, sub_veg_plot, lag_rain_plot, year_plot, nrow = 2, align = "hv")
 
 # geom_smooth()# using sjPlot
 conditional_effects(mod.zi.no.salinity.linear, surface = FALSE, prob = 0.89)
@@ -183,7 +190,8 @@ mcmc_intervals(posterior, point_est = "mean", prob = 0.89, prob_outer = 0.89,
                  "b_yearly_rain_scaled",
                  "b_WaterTemp_scaled",
                  "b_yearly_rain_lag_scaled:water_regimeseasonal",
-                 "b_BRDYEAR_scaled",  
+                 "b_BRDYEAR_scaled",
+                 # "b_BRDYEAR_uncentered",
                  "b_mean_percent_water_scaled",
                  "b_interpolated_canopy_scaled",
                  "b_water_flowlotic"                                
@@ -192,6 +200,7 @@ mcmc_intervals(posterior, point_est = "mean", prob = 0.89, prob_outer = 0.89,
   geom_vline(xintercept = 0, linetype = 2) +
   scale_y_discrete(labels = c(
     "b_BRDYEAR_scaled" = "Breeding year",
+    # "b_BRDYEAR_uncentered" = "Breeding year",
     "b_mean_percent_water_scaled" = "Mean percent water",
     "b_interpolated_canopy_scaled" = "Interpolated canopy cover",
     "b_WaterTemp_scaled" = "Water temperature",
