@@ -103,7 +103,7 @@ predict_fun <- function(...) {
 
 adjusted_curves <- adjustedsurv(
   data = onset_grouped,
-  variable = "canopy_groups",
+  variable = "rain_to_date_groups",
   ev_time = "dayOfWY",
   event = "breeding_status",
   method = "direct",
