@@ -267,7 +267,7 @@ lag_rain_plot <- ggplot(pred_unscaled, aes(x = lagged_rain_unscaled, y = estimat
   geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
   geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
   geom_line(stat = "smooth", color = main_color, linewidth = 1.5) +
-  labs(x = "Lagged yearly rainfall (cm)", y = "Number of egg masses")
+  labs(x = "Lagged yearly rainfall (cm)", y = " ")
 
 # percent submergent vegetation -- almost significant
 sub_veg_plot <- ggplot(pred_unscaled, aes(x = mean_percent_sub_unscaled, y = estimate)) +
@@ -277,7 +277,7 @@ sub_veg_plot <- ggplot(pred_unscaled, aes(x = mean_percent_sub_unscaled, y = est
   geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
   geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
   geom_line(stat = "smooth", color = main_color, linewidth = 1.5) +
-  labs(x = "Percent submergent vegetation", y = " ")
+  labs(x = "Percent submergent vegetation", y = "Number of egg masses")
 
 # water temp
 water_temp_plot <- ggplot(pred_unscaled, aes(x = water_temp_unscaled, y = estimate)) +
@@ -289,7 +289,7 @@ water_temp_plot <- ggplot(pred_unscaled, aes(x = water_temp_unscaled, y = estima
   geom_line(stat = "smooth", linewidth = 1.5, color = main_color) +
   labs(x = "Water temperature", y = " ")
 
-cowplot::plot_grid(canopy_plot, water_plot, sub_veg_plot, lag_rain_plot, year_plot, nrow = 2, align = "hv")
+cowplot::plot_grid(canopy_plot, water_plot, year_plot, sub_veg_plot, lag_rain_plot, nrow = 2, align = "hv")
 
 # geom_smooth()# using sjPlot
 conditional_effects(mod.zi.no.salinity.linear, surface = FALSE, prob = 0.89)
