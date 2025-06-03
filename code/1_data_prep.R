@@ -169,6 +169,7 @@ between_year_data <- data %>%
   ungroup()
 
 between_year_data$complete_case <- complete.cases(between_year_data)
+nrow(between_year_data)
 
 ##### (un)scaling ####
 scaled_between_year <- between_year_data %>% 
@@ -214,7 +215,8 @@ between_year_data_lagged <- scaled_between_year %>%
   mutate(num_egg_masses_lag = lag(num_egg_masses, n = 3)) %>%
   ungroup()
 
-# write to CSV
+#### write to CSV ####
+write_csv(between_year_data, here::here("data", "between_year_data.csv"))
 write_csv(scaled_between_year, here::here("data", "scaled_between_year.csv"))
 write_csv(between_year_data_lagged, here::here("data", "lag_between_year_data.csv"))
 
