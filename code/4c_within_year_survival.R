@@ -23,7 +23,9 @@ unscaled_within_year <- onset_of_breeding_surv %>%
     Watershed = as.factor(Watershed)) %>% 
   select(-WaterTemp) # for complete cases, lots of NA's
 
+# apply complete cases
 unscaled_within_year$complete_case <- complete.cases(unscaled_within_year)
+
 complete_onset <- unscaled_within_year %>% 
   filter(complete_case == TRUE,
          next_survey > dayOfWY) %>% 
@@ -38,6 +40,8 @@ ggplot(summary_stats_data, aes(x = dayOfWY)) +
   geom_histogram()
 
 summary(summary_stats_data$dayOfWY)
+# write to CSV
+write_csv(complete_onset, here::here("data", "complete_onset_of_breeding.csv"))
 
 #### frailty model + plots ####
 

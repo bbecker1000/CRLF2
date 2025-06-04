@@ -19,7 +19,7 @@ setwd(here::here("code"))
 # source("1_data_prep.R")
 data <- read_csv(here::here("data", "filtered_raw_data.csv"))
 between_year_data <- read_csv(here::here("data", "between_year_data.csv"))
-complete_btw_data <- read_csv(here::here("data", "complete_btw_data.csv"))
+complete_btw_data <- read_csv(here::here("data", "scaled_between_year.csv"))
 onset_of_breeding_surv <- read_csv(here::here("data", "onset_of_breeding.csv"))
 ```
 
@@ -37,15 +37,12 @@ sum(data$NumberofEggMasses, na.rm = TRUE)
 summary(data$NumberofEggMasses,na.rm = TRUE)
 ```
 
-#### dataframe: "statistics"
-
-1.  number of survey
-2.  mean number of new egg masses per survey
-3.  total number of egg masses per watershed per site per year
-4.  first and last egg mass detected per year
-5.  length of breeding season
-
 ```{r statistics_dataframe}
+# number of surveys
+# mean number of new egg masses per survey
+# total number of egg masses per watershed per site per year
+# first and last egg mass detected per year
+# length of breeding season
 statistics <- data %>% 
   group_by(BRDYEAR,Watershed,LocationID) %>% 
   summarize(survey_count = n_distinct(EventGUID),
@@ -57,7 +54,7 @@ statistics <- data %>%
 statistics
 ```
 
-```{r}
+```{r ranges}
 # ranges of each variable for summary data table
 data_mins <- data.frame(sapply(data, min, na.rm = TRUE))
 data_maxs <- data.frame(sapply(data, max, na.rm = TRUE))
@@ -67,7 +64,7 @@ count(data, LocationID)
 
 #### hypotheses table (march 2025) ranges & means
 
-```{r}
+```{r hypothesis_table_means_ranges}
 summary <- data %>%
   select(BRDYEAR, yearly_rain, yearly_rain_lag, mean_percent_water, mean_percent_sub, interpolated_canopy, WaterTemp, MaxD, WaterSalinity, AirTemp) %>%
   summarise(
@@ -85,6 +82,42 @@ summary <- data %>%
 num_sites <- data %>% summarise(total_locationIDs = n_distinct(LocationID))
 num_watershed <- data %>% summarise(total_watersheds = n_distinct(Watershed))
 
+```
+
+### complete cases summary (june 2025)
+
+```{r complete_cases_summary}
+##### between year model ####
+# complete cases applied in 1_data_prep --> included in "between_year_data.csv"
+## how many data entries total?
+length(between_year_data$complete_case) #479
+
+## how many complete cases? how many removed?
+eda_btw_complete <- between_year_data %>% filter(complete_case == TRUE)
+nrow(eda_btw_complete) # 184 remain
+
+nrow(complete_btw_data) ## verification that this matches scaled between year (used in model)
+
+
+##### within year model ####
+# complete cases applied in 4c_within_year_survival --> included in "complete_onset_of_breeding.csv"
+eda_within_complete <- onset_of_breeding_surv %>% 
+  mutate(
+    water_flow = as.factor(water_flow),
+    water_regime = as.factor(water_regime), 
+    LocationID = as.factor(LocationID),
+    Watershed = as.factor(Watershed)) %>% 
+  select(-WaterTemp)
+
+eda_within_complete$complete_case <- complete.cases(eda_within_complete)
+eda_within_complete$complete_case
+
+## how many data entries total?
+length(eda_within_complete$complete_case) #909
+
+## how many complete cases? how many removed?
+within_complete <- eda_within_complete %>% filter(complete_case == TRUE)
+nrow(within_complete) #694 complete (76.3%), 215 removed (23.65%)
 ```
 
 # plots
