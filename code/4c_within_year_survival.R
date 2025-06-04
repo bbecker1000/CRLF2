@@ -29,6 +29,16 @@ complete_onset <- unscaled_within_year %>%
          next_survey > dayOfWY) %>% 
   select(-complete_case)
 
+summary_stats_data <- complete_onset %>% 
+  filter(breeding_status == 1) %>% 
+  mutate(beginningWY = ymd(paste0(BRDYEAR - 1, "-10-01")),
+         first_breeding = beginningWY + days(dayOfWY))
+
+ggplot(summary_stats_data, aes(x = dayOfWY)) +
+  geom_histogram()
+
+summary(summary_stats_data$dayOfWY)
+
 #### frailty model + plots ####
 
 # group rain_to_date into groups for survival model

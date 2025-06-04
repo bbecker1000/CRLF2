@@ -8,9 +8,15 @@ library(cowplot)
 library(priorsense)
 library(tidyverse)
 library(ggridges)
+library(rstan)
+library(tidybayes)
 
 scaled_between_year <- read_csv(here::here("data", "scaled_between_year.csv")) %>% 
-  mutate(BRDYEAR_uncentered = BRDYEAR - 2002)
+  mutate(water_flow = as.factor(water_flow),
+         water_regime = as.factor(water_regime),
+         water_flow = fct_infreq(water_flow))
+
+levels(scaled_between_year$water_flow)
 
 set.seed(42) # so the model will give us the same results each time
 
@@ -26,7 +32,8 @@ bprior.no.sal.linear.zi <- c(
   prior(normal(-0.5, 0.5), coef = interpolated_canopy_scaled), 
   prior(normal(0.25, 0.5), coef = mean_percent_sub_scaled), 
   prior(normal(0.0, 0.5), coef = mean_percent_water_scaled), # add squared term
-  prior(normal(0.5, 1), coef = water_flowlentic), 
+  # prior(normal(0.5, 1), coef = water_flowlentic), 
+  prior(normal(0, 1), coef = water_flowboth),
   prior(normal(-0.5, 1), coef = water_flowlotic), 
   prior(normal(0.5, 1), coef = water_regimeseasonal), 
   prior(normal(0.5, 1), coef = yearly_rain_lag_scaled), 
@@ -71,9 +78,9 @@ summary(mod.zi.no.salinity.linear, prob = 0.89)
 powerscale_sensitivity(mod.zi.no.salinity.linear)
 powerscale_plot_dens(mod.zi.no.salinity.linear)
 
-get_variables(mod.zi.no.salinity.linear)
-
 # plotting prior and posterior distributions
+
+get_variables(mod.zi.no.salinity.linear)
 
 prior_dist <- prior_draws(mod.zi.no.salinity.linear,
                           variable = c("b_BRDYEAR_scaled", 
@@ -84,7 +91,7 @@ prior_dist <- prior_draws(mod.zi.no.salinity.linear,
                                        "b_yearly_rain_scaled",
                                        "b_yearly_rain_lag_scaled",
                                        "b_water_regimeseasonal",
-                                       "b_water_flowlentic",
+                                       # "b_water_flowboth",
                                        "b_water_flowlotic",
                                        "b_yearly_rain_scaled:water_regimeseasonal",
                                        "b_yearly_rain_lag_scaled:water_regimeseasonal"
@@ -95,13 +102,13 @@ prior_dist <- prior_draws(mod.zi.no.salinity.linear,
     "b_BRDYEAR_scaled" ~ "Breeding Year",
     "b_mean_percent_water_scaled" ~ "Mean Percent Water",
     "b_interpolated_canopy_scaled" ~ "Mean Percent Canopy",
-    "b_WaterTemp_scaled" ~ "Water Temp",
+    "b_WaterTemp_scaled" ~ "Water Temperature",
     "b_mean_percent_sub_scaled" ~ "Percent Submergent Vegetation",
     "b_yearly_rain_scaled" ~ "Yearly Rain",
     "b_yearly_rain_lag_scaled" ~ "Lagged Yearly Rain",
     "b_water_regimeseasonal" ~ "Seasonal Water Regime",
-    "b_water_flowlentic" ~ "Lotic Water Flow",
-    "b_water_flowlotic" ~ "Lentic Water Flow",
+    # "b_water_flowboth" ~ "Intermediate Water Flow",
+    "b_water_flowlotic" ~ "Lotic Water Flow",
     "b_yearly_rain_scaled:water_regimeseasonal" ~ "Yearly Rain Scaled x Seasonal Water Regime",
     "b_yearly_rain_lag_scaled:water_regimeseasonal" ~ "Lagged Yearly Rain Scaled x Seasonal Water Regime"
   ),
@@ -119,7 +126,7 @@ posterior_dist <- as.matrix(mod.zi.no.salinity.linear) %>%
                     "b_yearly_rain_scaled",
                     "b_yearly_rain_lag_scaled",
                     "b_water_regimeseasonal",
-                    "b_water_flowlentic",
+                    # "b_water_flowboth",
                     "b_water_flowlotic",
                     "b_yearly_rain_scaled:water_regimeseasonal",
                     "b_yearly_rain_lag_scaled:water_regimeseasonal"
@@ -129,13 +136,13 @@ posterior_dist <- as.matrix(mod.zi.no.salinity.linear) %>%
     "b_BRDYEAR_scaled" ~ "Breeding Year",
     "b_mean_percent_water_scaled" ~ "Mean Percent Water",
     "b_interpolated_canopy_scaled" ~ "Mean Percent Canopy",
-    "b_WaterTemp_scaled" ~ "Water Temp",
+    "b_WaterTemp_scaled" ~ "Water Temperature",
     "b_mean_percent_sub_scaled" ~ "Percent Submergent Vegetation",
     "b_yearly_rain_scaled" ~ "Yearly Rain",
     "b_yearly_rain_lag_scaled" ~ "Lagged Yearly Rain",
     "b_water_regimeseasonal" ~ "Seasonal Water Regime",
-    "b_water_flowlentic" ~ "Lotic Water Flow",
-    "b_water_flowlotic" ~ "Lentic Water Flow",
+    # "b_water_flowboth" ~ "Intermediate Water Flow",
+    "b_water_flowlotic" ~ "Lotic Water Flow",
     "b_yearly_rain_scaled:water_regimeseasonal" ~ "Yearly Rain Scaled x Seasonal Water Regime",
     "b_yearly_rain_lag_scaled:water_regimeseasonal" ~ "Lagged Yearly Rain Scaled x Seasonal Water Regime"
   ),
@@ -149,18 +156,26 @@ prior_post <- rbind(prior_dist, posterior_dist) %>%
          distribution = fct_inorder(distribution))
   # filter(parameter == "Lentic Water Flow" | parameter == "Lotic Water Flow")
 
+# color palette
+prior_color <- "#54494B"
+posterior_color <- "#7DC82D"
+
+
 prior_post_plot <- ggplot(data = prior_post, aes(x = value, y = parameter, fill = distribution)) +
   geom_density_ridges(alpha = 0.5, rel_min_height = 0.01, scale = 0.9) +
   geom_vline(xintercept = 0, linetype = "dashed") +
   scale_x_continuous(limits = c(-3, 3)) +
   scale_y_discrete(expand = expansion(mult = c(0.01, 0.06))) +
-  theme_ridges(center_axis_labels = TRUE)
+  theme_ridges(center_axis_labels = TRUE) +
+  scale_fill_manual(values = c("Prior" = prior_color, "Posterior" = posterior_color))
 prior_post_plot
 
 
 mcmc_areas(prior_dist, point_est = "mean", prob = 0.89, prob_outer = 0.89,
            pars = c(
-             "b_water_flowlentic",
+             # "b_water_flowlentic",
+             "b_water_flowlotic",
+             # "b_water_flowboth",
              "b_yearly_rain_scaled:water_regimeseasonal",
              "b_mean_percent_sub_scaled",
              "b_yearly_rain_lag_scaled",
@@ -185,7 +200,7 @@ mcmc_areas(prior_dist, point_est = "mean", prob = 0.89, prob_outer = 0.89,
     "b_yearly_rain_scaled" = "Yearly rain",
     "b_yearly_rain_lag_scaled" = "Lagged yearly rain",
     "b_water_regimeseasonal" = "Seasonal water regime",
-    "b_water_flowlentic" = "Lentic flow",
+    # "b_water_flowlentic" = "Lentic flow",
     "b_water_flowlotic" = "Lotic flow",
     "b_yearly_rain_scaled:water_regimeseasonal" = "Yearly rain × Seasonal water",
     "b_yearly_rain_lag_scaled:water_regimeseasonal" = "Lagged rain × Seasonal water"
@@ -218,16 +233,19 @@ pred_unscaled <- pred %>%
   )
 
 # color palette because i want the plots to look pretty
-# main_color <- "#CC5803"
-# background <- "#FF9505"
+main_color_2 <- "#CC5803"
+background_2 <- "#FF9505"
 # background2 <- "#FFB627"
 
 # OR
 
-
 main_color <- "#49741A"
 background <- "#7DC82D"
-background2 <- "#91D548"
+# background2 <- "#91D548"
+
+main_color_3 <- "#0070CC"
+background_3 <- "#47ACFF"
+
 
 # canopy -- significant
 canopy_plot <- ggplot(pred_unscaled, aes(x = interpolated_canopy_unscaled, y = estimate)) +
@@ -253,43 +271,43 @@ water_plot <- ggplot(pred_unscaled, aes(x = mean_percent_water_unscaled, y = est
 year_plot <- ggplot(pred_unscaled, aes(x = BRDYEAR_unscaled, y = estimate)) +
   scale_y_continuous(limits = c(-1, 175)) +
   theme_bw() +
-  geom_point(aes(y = num_egg_masses), color = background, alpha = 0.035) +
+  geom_point(aes(y = num_egg_masses), color = background_2, alpha = 0.035) +
   geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
   geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
-  geom_line(stat = "smooth", color = main_color, linewidth = 1.5) +
+  geom_line(stat = "smooth", color = main_color_2, linewidth = 1.5) +
   labs(x = "Water year", y = " ")
 
 # lagged yearly rain -- almost significant
 lag_rain_plot <- ggplot(pred_unscaled, aes(x = lagged_rain_unscaled, y = estimate)) +
   scale_y_continuous(limits = c(-1, 175)) +
   theme_bw() +
-  geom_point(aes(y = num_egg_masses), color = background, alpha = 0.035) +
+  geom_point(aes(y = num_egg_masses), color = background_3, alpha = 0.035) +
   geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
   geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
-  geom_line(stat = "smooth", color = main_color, linewidth = 1.5) +
+  geom_line(stat = "smooth", color = main_color_3, linewidth = 1.5) +
   labs(x = "Lagged yearly rainfall (cm)", y = " ")
 
 # percent submergent vegetation -- almost significant
 sub_veg_plot <- ggplot(pred_unscaled, aes(x = mean_percent_sub_unscaled, y = estimate)) +
   scale_y_continuous(limits = c(-1, 175)) +
   theme_bw() +
-  geom_point(aes(y = num_egg_masses), color = background, alpha = 0.035) +
+  geom_point(aes(y = num_egg_masses), color = background_3, alpha = 0.035) +
   geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
   geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
-  geom_line(stat = "smooth", color = main_color, linewidth = 1.5) +
+  geom_line(stat = "smooth", color = main_color_3, linewidth = 1.5) +
   labs(x = "Percent submergent vegetation", y = "Number of egg masses")
 
 # water temp
 water_temp_plot <- ggplot(pred_unscaled, aes(x = water_temp_unscaled, y = estimate)) +
   scale_y_continuous(limits = c(-1, 175)) +
   theme_bw() +
-  geom_point(aes(y = num_egg_masses), color = background, alpha = 0.035) +
+  geom_point(aes(y = num_egg_masses), color = background_3, alpha = 0.035) +
   geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
   geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
-  geom_line(stat = "smooth", linewidth = 1.5, color = main_color) +
-  labs(x = "Water temperature", y = " ")
+  geom_line(stat = "smooth", linewidth = 1.5, color = main_color_3) +
+  labs(x = "Water temperature (°C)", y = " ")
 
-cowplot::plot_grid(canopy_plot, water_plot, year_plot, sub_veg_plot, lag_rain_plot, nrow = 2, align = "hv")
+cowplot::plot_grid(canopy_plot, water_plot, year_plot, sub_veg_plot, lag_rain_plot, water_temp_plot, nrow = 2, align = "hv")
 
 # geom_smooth()# using sjPlot
 conditional_effects(mod.zi.no.salinity.linear, surface = FALSE, prob = 0.89)
@@ -314,7 +332,7 @@ mcmc_intervals(posterior, point_est = "mean", prob = 0.89, prob_outer = 0.89,
                inner_size = 1, 
                point_size = 2,
                pars = c(
-                 "b_water_flowlentic",
+                 # "b_water_flowlentic",
                  "b_yearly_rain_scaled:water_regimeseasonal",
                  "b_mean_percent_sub_scaled",
                  "b_yearly_rain_lag_scaled",
@@ -323,7 +341,6 @@ mcmc_intervals(posterior, point_est = "mean", prob = 0.89, prob_outer = 0.89,
                  "b_WaterTemp_scaled",
                  "b_yearly_rain_lag_scaled:water_regimeseasonal",
                  "b_BRDYEAR_scaled",
-                 # "b_BRDYEAR_uncentered",
                  "b_mean_percent_water_scaled",
                  "b_interpolated_canopy_scaled",
                  "b_water_flowlotic"                                
@@ -340,7 +357,7 @@ mcmc_intervals(posterior, point_est = "mean", prob = 0.89, prob_outer = 0.89,
     "b_yearly_rain_scaled" = "Yearly rain",
     "b_yearly_rain_lag_scaled" = "Lagged yearly rain",
     "b_water_regimeseasonal" = "Seasonal water regime",
-    "b_water_flowlentic" = "Lentic flow",
+    # "b_water_flowlentic" = "Lentic flow",
     "b_water_flowlotic" = "Lotic flow",
     "b_yearly_rain_scaled:water_regimeseasonal" = "Yearly rain × Seasonal water",
     "b_yearly_rain_lag_scaled:water_regimeseasonal" = "Lagged rain × Seasonal water"
