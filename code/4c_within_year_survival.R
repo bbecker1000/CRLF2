@@ -3,12 +3,11 @@ library(survival)
 library(survminer)
 library(coxme)
 library(here)
-library(nlme) 
-library(gratia)
 library(ggplot2)
 library(cowplot)
 library(riskRegression)
 library(adjustedCurves)
+library(AICcmodavg)
 
 #### prepping data for analysis ####
 setwd(here::here("code"))
@@ -31,8 +30,9 @@ complete_onset <- unscaled_within_year %>%
          next_survey > dayOfWY) %>% 
   select(-complete_case)
 
-summary_stats_data <- complete_onset %>% 
-  filter(breeding_status == 1) %>% 
+
+summary_stats_data <- complete_onset %>%
+  filter(breeding_status == 1) %>%
   mutate(beginningWY = ymd(paste0(BRDYEAR - 1, "-10-01")),
          first_breeding = beginningWY + days(dayOfWY))
 
