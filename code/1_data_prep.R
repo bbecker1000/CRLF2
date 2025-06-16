@@ -122,11 +122,14 @@ data <- unfiltered_data %>%
       LocationID == "LS02" | LocationID == "LS03" ~ "LS11",
       TRUE ~ LocationID
     )
-  ) 
-  # %>% 
-  # filter(WaterVis >= 0.3)
+  ) %>%
+  filter(BRDYEAR != 2025)
 
 write_csv(data, here::here("data", "filtered_raw_data.csv"))
+
+length(unique(raw_data$EventGUID))
+length(unique(unfiltered_data$EventGUID))
+length(unique(data$EventGUID))
 
 
 counts <- data %>% group_by(LocationID) %>% 
@@ -159,7 +162,8 @@ between_year_data <- data %>%
          proportion_na_water_vis = sum(is.na(WaterVis)) / n(),
          proportion_high_water_vis = if_else(is.nan(proportion_high_water_vis), 0, proportion_high_water_vis),
          across(everything(), ~first(.))) %>% 
-  select(-MaxD, -WaterSalinity, -NumberofEggMasses, -ground_sub, -ground_emerg, -ground_open_water, -DrySurvey) %>% 
+  select(-MaxD, -WaterSalinity, -NumberofEggMasses, -ground_sub, -ground_emerg, -ground_open_water, 
+         -DrySurvey, -WaterVis, -AirTemp, -mean_max_depth, -max_depth, -mean_percent_emerg) %>% 
   mutate(
     # mean_salinity = if_else(CoastalSite, mean_salinity, 0),
          # max_salinity = if_else(CoastalSite, max_salinity, 0),
@@ -169,20 +173,21 @@ between_year_data <- data %>%
   ungroup()
 
 between_year_data$complete_case <- complete.cases(between_year_data)
-nrow(between_year_data)
+
+nrow(between_year_data %>% filter(complete_case))
 
 ##### (un)scaling ####
 scaled_between_year <- between_year_data %>% 
   filter(complete_case == TRUE) %>% 
   mutate( BRDYEAR_scaled = as.vector(scale(BRDYEAR)),
           mean_percent_sub_scaled = as.vector(scale(mean_percent_sub)),
-          mean_percent_emerg_scaled = as.vector(scale(mean_percent_emerg)),
+          # mean_percent_emerg_scaled = as.vector(scale(mean_percent_emerg)),
           mean_percent_water_scaled = as.vector(scale(mean_percent_water)),
           interpolated_canopy_scaled = as.vector(scale(interpolated_canopy)),
           yearly_rain_scaled = as.vector(scale(yearly_rain)),
-          mean_max_depth_scaled = as.vector(scale(mean_max_depth)),
-          max_depth_scaled = as.vector(scale(max_depth)),
-          AirTemp_scaled = as.vector(scale(AirTemp)),
+          # mean_max_depth_scaled = as.vector(scale(mean_max_depth)),
+          # max_depth_scaled = as.vector(scale(max_depth)),
+          # AirTemp_scaled = as.vector(scale(AirTemp)),
           WaterTemp_scaled = as.vector(scale(WaterTemp)),
           yearly_rain_lag_scaled = as.vector(scale(yearly_rain_lag)))
 

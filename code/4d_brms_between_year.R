@@ -171,44 +171,6 @@ prior_post_plot <- ggplot(data = prior_post, aes(x = value, y = parameter, fill 
 prior_post_plot
 
 
-mcmc_areas(prior_dist, point_est = "mean", prob = 0.89, prob_outer = 0.89,
-           pars = c(
-             # "b_water_flowlentic",
-             "b_water_flowlotic",
-             # "b_water_flowboth",
-             "b_yearly_rain_scaled:water_regimeseasonal",
-             "b_mean_percent_sub_scaled",
-             "b_yearly_rain_lag_scaled",
-             "b_water_regimeseasonal",
-             "b_yearly_rain_scaled",
-             "b_WaterTemp_scaled",
-             "b_yearly_rain_lag_scaled:water_regimeseasonal",
-             "b_BRDYEAR_scaled",
-             # "b_BRDYEAR_uncentered",
-             "b_mean_percent_water_scaled",
-             "b_interpolated_canopy_scaled",
-             "b_water_flowlotic"                                
-           )) +
-  geom_vline(xintercept = 0, linetype = 2) +
-  scale_y_discrete(labels = c(
-    "b_BRDYEAR_scaled" = "Breeding year",
-    # "b_BRDYEAR_uncentered" = "Breeding year",
-    "b_mean_percent_water_scaled" = "Mean percent water",
-    "b_interpolated_canopy_scaled" = "Interpolated canopy cover",
-    "b_WaterTemp_scaled" = "Water temperature",
-    "b_mean_percent_sub_scaled" = "Mean percent submergent veg.",
-    "b_yearly_rain_scaled" = "Yearly rain",
-    "b_yearly_rain_lag_scaled" = "Lagged yearly rain",
-    "b_water_regimeseasonal" = "Seasonal water regime",
-    # "b_water_flowlentic" = "Lentic flow",
-    "b_water_flowlotic" = "Lotic flow",
-    "b_yearly_rain_scaled:water_regimeseasonal" = "Yearly rain × Seasonal water",
-    "b_yearly_rain_lag_scaled:water_regimeseasonal" = "Lagged rain × Seasonal water"
-  )) +
-  labs(x = "Estimate") +
-  theme_minimal()
-
-
 ##### plots: mod.zi.no.salinity.linear #####
 # using marginaleffects
 
@@ -308,6 +270,18 @@ water_temp_plot <- ggplot(pred_unscaled, aes(x = water_temp_unscaled, y = estima
   labs(x = "Water temperature (°C)", y = " ")
 
 cowplot::plot_grid(canopy_plot, water_plot, year_plot, sub_veg_plot, lag_rain_plot, water_temp_plot, nrow = 2, align = "hv")
+
+# water temp
+rain_water_regime_plot <- ggplot(pred_unscaled, aes(x = rain_unscaled, y = estimate)) +
+  scale_y_continuous(limits = c(-1, 175)) +
+  theme_bw() +
+  geom_point(aes(y = num_egg_masses, color = water_regime), alpha = 0.035) +
+  geom_line(aes(y = conf.low, color = water_regime), stat = "smooth", alpha = 0.5) +
+  geom_line(aes(y = conf.high, color = water_regime), stat = "smooth", alpha = 0.5) +
+  geom_line(aes(color = water_regime), stat = "smooth", linewidth = 1.5) +
+  labs(x = "Yearly Rain (cm)", y = "Number of egg masses") +
+  facet_wrap(~water_regime)
+rain_water_regime_plot
 
 # geom_smooth()# using sjPlot
 conditional_effects(mod.zi.no.salinity.linear, surface = FALSE, prob = 0.89)
