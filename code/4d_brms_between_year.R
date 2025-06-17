@@ -14,9 +14,8 @@ library(tidybayes)
 scaled_between_year <- read_csv(here::here("data", "scaled_between_year.csv")) %>% 
   mutate(water_flow = as.factor(water_flow),
          water_regime = as.factor(water_regime),
-         water_flow = fct_infreq(water_flow))
-
-levels(scaled_between_year$water_flow)
+         water_flow = fct_infreq(water_flow),
+         LocationID = as.factor(LocationID))
 
 set.seed(42) # so the model will give us the same results each time
 
@@ -191,19 +190,18 @@ pred_unscaled <- pred %>%
     lagged_rain_unscaled = (yearly_rain_lag_scaled * col_sd$yearly_rain_lag) + col_means$yearly_rain_lag,
     mean_percent_sub_unscaled = (mean_percent_sub_scaled * col_sd$mean_percent_sub) + col_means$mean_percent_sub,
     rain_unscaled = (yearly_rain_scaled * col_sd$yearly_rain) + col_means$yearly_rain,
-    water_temp_unscaled = (WaterTemp_scaled * col_sd$WaterTemp) + col_means$WaterTemp,
+    water_temp_unscaled = (WaterTemp_scaled * col_sd$WaterTemp) + col_means$WaterTemp
   )
 
 # color palette because i want the plots to look pretty
-main_color_2 <- "#CC5803"
-background_2 <- "#FF9505"
-# background2 <- "#FFB627"
-
-# OR
 
 main_color <- "#49741A"
 background <- "#7DC82D"
 # background2 <- "#91D548"
+
+main_color_2 <- "#CC5803"
+background_2 <- "#FF9505"
+# background2 <- "#FFB627"
 
 main_color_3 <- "#0070CC"
 background_3 <- "#47ACFF"
@@ -213,7 +211,7 @@ background_3 <- "#47ACFF"
 canopy_plot <- ggplot(pred_unscaled, aes(x = interpolated_canopy_unscaled, y = estimate)) +
   scale_y_continuous(limits = c(-1, 175)) +
   theme_bw() +
-  geom_point(aes(y = num_egg_masses), color = background, alpha = 0.035) +
+  geom_point(data = scaled_between_year, aes(x = interpolated_canopy, y = num_egg_masses), color = background, alpha = 0.3) +
   geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
   geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
   geom_line(stat = "smooth", color = main_color, linewidth = 1.5) +
@@ -223,7 +221,7 @@ canopy_plot <- ggplot(pred_unscaled, aes(x = interpolated_canopy_unscaled, y = e
 water_plot <- ggplot(pred_unscaled, aes(x = mean_percent_water_unscaled, y = estimate)) +
   scale_y_continuous(limits = c(-1, 175)) +
   theme_bw() +
-  geom_point(aes(y = num_egg_masses), color = background, alpha = 0.035) +
+  geom_point(data = scaled_between_year, aes(x = mean_percent_water, y = num_egg_masses), color = background, alpha = 0.3) +
   geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
   geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
   geom_line(stat = "smooth", color = main_color, linewidth = 1.5) +
@@ -233,7 +231,7 @@ water_plot <- ggplot(pred_unscaled, aes(x = mean_percent_water_unscaled, y = est
 year_plot <- ggplot(pred_unscaled, aes(x = BRDYEAR_unscaled, y = estimate)) +
   scale_y_continuous(limits = c(-1, 175)) +
   theme_bw() +
-  geom_point(aes(y = num_egg_masses), color = background_2, alpha = 0.035) +
+  geom_point(data = scaled_between_year, aes(x = BRDYEAR, y = num_egg_masses), color = background_2, alpha = 0.3) +
   geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
   geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
   geom_line(stat = "smooth", color = main_color_2, linewidth = 1.5) +
@@ -243,7 +241,7 @@ year_plot <- ggplot(pred_unscaled, aes(x = BRDYEAR_unscaled, y = estimate)) +
 lag_rain_plot <- ggplot(pred_unscaled, aes(x = lagged_rain_unscaled, y = estimate)) +
   scale_y_continuous(limits = c(-1, 175)) +
   theme_bw() +
-  geom_point(aes(y = num_egg_masses), color = background_3, alpha = 0.035) +
+  geom_point(data = scaled_between_year, aes(x = yearly_rain_lag, y = num_egg_masses), color = background_3, alpha = 0.3) +
   geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
   geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
   geom_line(stat = "smooth", color = main_color_3, linewidth = 1.5) +
@@ -253,7 +251,7 @@ lag_rain_plot <- ggplot(pred_unscaled, aes(x = lagged_rain_unscaled, y = estimat
 sub_veg_plot <- ggplot(pred_unscaled, aes(x = mean_percent_sub_unscaled, y = estimate)) +
   scale_y_continuous(limits = c(-1, 175)) +
   theme_bw() +
-  geom_point(aes(y = num_egg_masses), color = background_3, alpha = 0.035) +
+  geom_point(data = scaled_between_year, aes(x = mean_percent_sub, y = num_egg_masses), color = background_3, alpha = 0.3) +
   geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
   geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
   geom_line(stat = "smooth", color = main_color_3, linewidth = 1.5) +
@@ -263,7 +261,7 @@ sub_veg_plot <- ggplot(pred_unscaled, aes(x = mean_percent_sub_unscaled, y = est
 water_temp_plot <- ggplot(pred_unscaled, aes(x = water_temp_unscaled, y = estimate)) +
   scale_y_continuous(limits = c(-1, 175)) +
   theme_bw() +
-  geom_point(aes(y = num_egg_masses), color = background_3, alpha = 0.035) +
+  geom_point(data = scaled_between_year, aes(x = WaterTemp, y = num_egg_masses), color = background_3, alpha = 0.3) +
   geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
   geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
   geom_line(stat = "smooth", linewidth = 1.5, color = main_color_3) +
@@ -283,13 +281,55 @@ rain_water_regime_plot <- ggplot(pred_unscaled, aes(x = rain_unscaled, y = estim
   facet_wrap(~water_regime, labeller = labeller(water_regime = c(perennial = "Perennial Water Regime", seasonal = "Seasonal Water Regime")))
 rain_water_regime_plot
 
+#### trying to use sjPlot for effects plots ####
+
+scaled_between_year_round <- scaled_between_year %>% 
+  mutate(across(where(is.double), ~ round(., digits = 2)))
+
+sjPlot_effects <- function(term, xlab, color, ylab = "Number of egg masses") {
+  min_val <- min(scaled_between_year_round[[paste0(term, "_scaled")]])
+  max_val <- max(scaled_between_year_round[[paste0(term, "_scaled")]])
+  
+  switch(color,
+         green = {
+           mc <- main_color
+           bg <- background
+         },
+         orange = {
+           mc <- main_color_2
+           bg <- background_2
+         },
+         blue = {
+           mc <- main_color_3
+           bg <- background_3
+         })
+  
+  plot_data <- as.data.frame(get_model_data(mod.zi.no.salinity.linear, type = "pred", terms = paste0(term, "_scaled [" , min_val, ":", max_val, ", by = 0.01]"))) %>% 
+    select(-group, -group_col) %>% 
+    mutate(unscaled = (x * col_sd[[term]]) + col_means[[term]])
+  
+  xlim <- c(round(min(plot_data$unscaled)), round(max(plot_data$unscaled)))
+
+  ggplot(plot_data, aes(x = unscaled, y = predicted)) +
+    geom_point(data = scaled_between_year, aes(x = .data[[term]], y = num_egg_masses), alpha = 0.5, color = bg) +
+    geom_line(linewidth = 1, color = mc) +
+    geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.3, fill = bg) +
+    theme_bw() +
+    labs(x = xlab, y = ylab) +
+    scale_x_continuous(limits = xlim) +
+    scale_y_continuous(limits = c(-1, 50))
+}
+canopy_plot <- sjPlot_effects("interpolated_canopy", "Percent canopy cover", "green")
+water_plot <- sjPlot_effects("mean_percent_water", "Percent open water", "green", " ")
+year_plot <- sjPlot_effects("BRDYEAR", "Breeding year", "orange", " ")
+sub_veg_plot <- sjPlot_effects("mean_percent_sub", "Percent submergent vegetation", "blue")
+lag_rain_plot <- sjPlot_effects("yearly_rain_lag", "Lagged yearly rain (cm)", "blue", " ")
+water_temp_plot <- sjPlot_effects("WaterTemp", "Water temperature (°C)", "blue", " ")
+
+cowplot::plot_grid(canopy_plot, water_plot, year_plot, sub_veg_plot, lag_rain_plot, water_temp_plot, nrow = 2, align = "hv")
+
 # geom_smooth()# using sjPlot
-conditional_effects(mod.zi.no.salinity.linear, surface = FALSE, prob = 0.89)
-
 posterior <- as.matrix(mod.zi.no.salinity.linear)
-
-# scheme_green <- c(main_color, background, background2, "black", background, background2)
-
 palette_green <- c(
   "#A5DD69",
   "#87D237",
@@ -297,7 +337,6 @@ palette_green <- c(
   "#49741A",
   "#2A430F",
    "black")
-
 
 color_scheme_set(palette_green)
 
@@ -340,9 +379,6 @@ mcmc_intervals(posterior, point_est = "mean", prob = 0.89, prob_outer = 0.89,
   theme_minimal()
 
 # plot_model(mod.zi.no.salinity.linear, type = "pred", terms = c("yearly_rain_lag_scaled"))
-
-
-
 
 
 
