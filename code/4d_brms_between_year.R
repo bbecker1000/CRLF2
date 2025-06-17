@@ -275,12 +275,12 @@ cowplot::plot_grid(canopy_plot, water_plot, year_plot, sub_veg_plot, lag_rain_pl
 rain_water_regime_plot <- ggplot(pred_unscaled, aes(x = rain_unscaled, y = estimate)) +
   scale_y_continuous(limits = c(-1, 175)) +
   theme_bw() +
-  geom_point(aes(y = num_egg_masses, color = water_regime), alpha = 0.035) +
-  geom_line(aes(y = conf.low, color = water_regime), stat = "smooth", alpha = 0.5) +
-  geom_line(aes(y = conf.high, color = water_regime), stat = "smooth", alpha = 0.5) +
-  geom_line(aes(color = water_regime), stat = "smooth", linewidth = 1.5) +
-  labs(x = "Yearly Rain (cm)", y = "Number of egg masses") +
-  facet_wrap(~water_regime)
+  geom_point(aes(y = num_egg_masses), color = background, alpha = 0.035) +
+  geom_line(aes(y = conf.low), color = 'black', stat = "smooth", alpha = 0.5) +
+  geom_line(aes(y = conf.high), color = 'black', stat = "smooth", alpha = 0.5) +
+  geom_line(stat = "smooth", linewidth = 1.5, color=  main_color) +
+  labs(x = "Yearly rainfall (cm)", y = "Number of egg masses") +
+  facet_wrap(~water_regime, labeller = labeller(water_regime = c(perennial = "Perennial Water Regime", seasonal = "Seasonal Water Regime")))
 rain_water_regime_plot
 
 # geom_smooth()# using sjPlot
