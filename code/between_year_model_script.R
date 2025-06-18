@@ -1,14 +1,13 @@
 library(brms)
-# library(lme4)
 library(marginaleffects)
 library(cowplot)
 library(bayesplot)
 library(sjPlot)
 library(priorsense)
-# library(tidyverse)
 library(ggridges)
 library(rstan)
 library(tidybayes)
+library(ggeffects)
 
 scaled_between_year <- read_csv(here::here("data", "scaled_between_year.csv")) %>% 
   mutate(water_flow = as.factor(water_flow),
@@ -154,25 +153,6 @@ prior_post_plot <- ggplot(data = prior_post, aes(x = value, y = parameter, fill 
 prior_post_plot
 
 ##### plots: mod.zi.no.salinity.linear #####
-# using marginaleffects
-
-pred <- predictions(mod.zi.no.salinity.linear, conf_level = 0.89, type = "prediction", ndraws = 10, re_formula = NA)
-pred <- get_draws(pred)
-
-# unscaling response variables for plotting
-col_means <- read_csv(here::here("data", "between_year_col_means.csv"))
-col_sd <- read_csv(here::here("data", "between_year_col_sd.csv"))
-pred_unscaled <- pred %>% 
-  mutate(
-    interpolated_canopy_unscaled = (interpolated_canopy_scaled * col_sd$interpolated_canopy) + col_means$interpolated_canopy,
-    BRDYEAR_unscaled = (BRDYEAR_scaled * col_sd$BRDYEAR) + col_means$BRDYEAR,
-    mean_percent_water_unscaled = (mean_percent_water_scaled * col_sd$mean_percent_water) + col_means$mean_percent_water,
-    lagged_rain_unscaled = (yearly_rain_lag_scaled * col_sd$yearly_rain_lag) + col_means$yearly_rain_lag,
-    mean_percent_sub_unscaled = (mean_percent_sub_scaled * col_sd$mean_percent_sub) + col_means$mean_percent_sub,
-    rain_unscaled = (yearly_rain_scaled * col_sd$yearly_rain) + col_means$yearly_rain,
-    water_temp_unscaled = (WaterTemp_scaled * col_sd$WaterTemp) + col_means$WaterTemp,
-  )
-
 # color palettes
 main_color <- "#49741A"
 background <- "#7DC82D"
@@ -183,68 +163,79 @@ background_2 <- "#FF9505"
 main_color_3 <- "#0070CC"
 background_3 <- "#47ACFF"
 
+# effects plots using sjPlot
+scaled_between_year_round <- scaled_between_year %>% 
+  mutate(across(where(is.double), ~ round(., digits = 2)))
 
-# canopy -- significant
-canopy_plot <- ggplot(pred_unscaled, aes(x = interpolated_canopy_unscaled, y = estimate)) +
-  scale_y_continuous(limits = c(-1, 175)) +
+sjPlot_effects <- function(term, xlab, color, ylab = "Number of egg masses") {
+  min_val <- min(scaled_between_year_round[[paste0(term, "_scaled")]])
+  max_val <- max(scaled_between_year_round[[paste0(term, "_scaled")]])
+  
+  switch(color,
+         green = {
+           mc <- main_color
+           bg <- background
+         },
+         orange = {
+           mc <- main_color_2
+           bg <- background_2
+         },
+         blue = {
+           mc <- main_color_3
+           bg <- background_3
+         })
+  plot_data <- as.data.frame(get_model_data(mod.zi.no.salinity.linear, type = "pred", terms = paste0(term, "_scaled [" , min_val, ":", max_val, ", by = 0.01]"), interval = "confidence")) %>% 
+    select(-group, -group_col) %>% 
+    mutate(unscaled = (x * col_sd[[term]]) + col_means[[term]])
+  
+  xlim <- c(round(min(plot_data$unscaled)), round(max(plot_data$unscaled)))
+  
+  ggplot(plot_data, aes(x = unscaled, y = predicted)) +
+    # point data for appendix plot
+    # geom_point(data = scaled_between_year, aes(x = .data[[term]], y = num_egg_masses), alpha = 0.5, color = bg) +
+    geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.3, fill = bg) +
+    geom_line(linewidth = 1, color = mc) +
+    theme_bw() +
+    labs(x = xlab, y = ylab) +
+    scale_x_continuous(limits = xlim) +
+  scale_y_continuous(limits = c(-1, 55))
+}
+canopy_plot <- sjPlot_effects("interpolated_canopy", "Percent canopy cover", "green")
+water_plot <- sjPlot_effects("mean_percent_water", "Percent open water", "green", " ")
+year_plot <- sjPlot_effects("BRDYEAR", "Breeding year", "orange", " ")
+sub_veg_plot <- sjPlot_effects("mean_percent_sub", "Percent submergent vegetation", "blue")
+lag_rain_plot <- sjPlot_effects("yearly_rain_lag", "Lagged yearly rain (cm)", "blue", " ")
+water_temp_plot <- sjPlot_effects("WaterTemp", "Water temperature (°C)", "blue", " ")
+yearly_rain_plot <- sjPlot_effects("yearly_rain", "Yearly rain (cm)", "green", " ")
+
+# interaction plot for water regime and yearly rain
+# directly calling ggpredict because sjPlot's wrapper (get_model_data) won't let me get interaction data at intervals of 0.01
+plot_data <- ggpredict(mod.zi.no.salinity.linear, 
+                       terms = c("yearly_rain_scaled [-1.58:1.58 by=0.01]", "water_regime"),
+                       ci.level = 0.89,
+                       interval = "confidence") %>% 
+  as.data.frame() %>% 
+  mutate(unscaled = (x * col_sd$yearly_rain) + col_means$yearly_rain)
+
+interaction_plot <- ggplot(plot_data, aes(x = unscaled, y = predicted)) +
+  # geom_point(data = scaled_between_year, aes(x = yearly_rain, y = num_egg_masses, color = water_regime), alpha = 0.5) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.3) +
+  geom_line(linewidth = 1, aes(color = group)) +
   theme_bw() +
-  geom_point(aes(y = num_egg_masses), color = background, alpha = 0.035) +
-  geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
-  geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
-  geom_line(stat = "smooth", color = main_color, linewidth = 1.5) +
-  labs(x = "Percent canopy cover", y = "Number of egg masses")
+  labs(x = "Yearly rain (cm)", y = "Number of egg masses", color = "Water regime", fill = "Water regime") +
+  scale_y_continuous(limits = c(0, 25)) +
+  scale_color_manual(values = c("black", "#49741A")) +
+  scale_fill_manual(values = c("#54494B", "#7DC82D"))
 
-# percent open water -- significant
-water_plot <- ggplot(pred_unscaled, aes(x = mean_percent_water_unscaled, y = estimate)) +
-  scale_y_continuous(limits = c(-1, 175)) +
-  theme_bw() +
-  geom_point(aes(y = num_egg_masses), color = background, alpha = 0.035) +
-  geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
-  geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
-  geom_line(stat = "smooth", color = main_color, linewidth = 1.5) +
-  labs(x = "Percent open water cover", y = " ")
+# 3 cols, 2 rows
+effects_plots <- cowplot::plot_grid(canopy_plot, water_plot, year_plot, sub_veg_plot, lag_rain_plot, water_temp_plot, 
+                                    nrow = 2, align = "hv")
 
-# BRDYEAR -- almost significant, nice to see trends over time
-year_plot <- ggplot(pred_unscaled, aes(x = BRDYEAR_unscaled, y = estimate)) +
-  scale_y_continuous(limits = c(-1, 175)) +
-  theme_bw() +
-  geom_point(aes(y = num_egg_masses), color = background_2, alpha = 0.035) +
-  geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
-  geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
-  geom_line(stat = "smooth", color = main_color_2, linewidth = 1.5) +
-  labs(x = "Water year", y = " ")
+cowplot::plot_grid(effects_plots, interaction_plot,
+                   nrow = 2, rel_heights = c(2, 1))
 
-# lagged yearly rain -- almost significant
-lag_rain_plot <- ggplot(pred_unscaled, aes(x = lagged_rain_unscaled, y = estimate)) +
-  scale_y_continuous(limits = c(-1, 175)) +
-  theme_bw() +
-  geom_point(aes(y = num_egg_masses), color = background_3, alpha = 0.035) +
-  geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
-  geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
-  geom_line(stat = "smooth", color = main_color_3, linewidth = 1.5) +
-  labs(x = "Lagged yearly rainfall (cm)", y = " ")
 
-# percent submergent vegetation -- almost significant
-sub_veg_plot <- ggplot(pred_unscaled, aes(x = mean_percent_sub_unscaled, y = estimate)) +
-  scale_y_continuous(limits = c(-1, 175)) +
-  theme_bw() +
-  geom_point(aes(y = num_egg_masses), color = background_3, alpha = 0.035) +
-  geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
-  geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
-  geom_line(stat = "smooth", color = main_color_3, linewidth = 1.5) +
-  labs(x = "Percent submergent vegetation", y = "Number of egg masses")
 
-# water temp
-water_temp_plot <- ggplot(pred_unscaled, aes(x = water_temp_unscaled, y = estimate)) +
-  scale_y_continuous(limits = c(-1, 175)) +
-  theme_bw() +
-  geom_point(aes(y = num_egg_masses), color = background_3, alpha = 0.035) +
-  geom_line(aes(y = conf.low), stat = "smooth", color = "black", alpha = 0.5) +
-  geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
-  geom_line(stat = "smooth", linewidth = 1.5, color = main_color_3) +
-  labs(x = "Water temperature (°C)", y = " ")
-
-cowplot::plot_grid(canopy_plot, water_plot, year_plot, sub_veg_plot, lag_rain_plot, water_temp_plot, nrow = 2, align = "hv")
 
 palette_green <- c(
   "#A5DD69",

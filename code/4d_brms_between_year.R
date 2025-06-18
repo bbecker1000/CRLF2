@@ -282,7 +282,6 @@ rain_water_regime_plot <- ggplot(pred_unscaled, aes(x = rain_unscaled, y = estim
 rain_water_regime_plot
 
 #### trying to use sjPlot for effects plots ####
-
 scaled_between_year_round <- scaled_between_year %>% 
   mutate(across(where(is.double), ~ round(., digits = 2)))
 
@@ -303,21 +302,21 @@ sjPlot_effects <- function(term, xlab, color, ylab = "Number of egg masses") {
            mc <- main_color_3
            bg <- background_3
          })
-  
-  plot_data <- as.data.frame(get_model_data(mod.zi.no.salinity.linear, type = "pred", terms = paste0(term, "_scaled [" , min_val, ":", max_val, ", by = 0.01]"))) %>% 
+  plot_data <- as.data.frame(get_model_data(mod.zi.no.salinity.linear, type = "pred", terms = paste0(term, "_scaled [" , min_val, ":", max_val, ", by = 0.01]"), interval = "confidence")) %>% 
     select(-group, -group_col) %>% 
     mutate(unscaled = (x * col_sd[[term]]) + col_means[[term]])
   
   xlim <- c(round(min(plot_data$unscaled)), round(max(plot_data$unscaled)))
-
+  
   ggplot(plot_data, aes(x = unscaled, y = predicted)) +
-    geom_point(data = scaled_between_year, aes(x = .data[[term]], y = num_egg_masses), alpha = 0.5, color = bg) +
-    geom_line(linewidth = 1, color = mc) +
+    # point data for appendix plot
+    # geom_point(data = scaled_between_year, aes(x = .data[[term]], y = num_egg_masses), alpha = 0.5, color = bg) +
     geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.3, fill = bg) +
+    geom_line(linewidth = 1, color = mc) +
     theme_bw() +
     labs(x = xlab, y = ylab) +
     scale_x_continuous(limits = xlim) +
-    scale_y_continuous(limits = c(-1, 50))
+    scale_y_continuous(limits = c(-1, 55))
 }
 canopy_plot <- sjPlot_effects("interpolated_canopy", "Percent canopy cover", "green")
 water_plot <- sjPlot_effects("mean_percent_water", "Percent open water", "green", " ")
@@ -325,8 +324,33 @@ year_plot <- sjPlot_effects("BRDYEAR", "Breeding year", "orange", " ")
 sub_veg_plot <- sjPlot_effects("mean_percent_sub", "Percent submergent vegetation", "blue")
 lag_rain_plot <- sjPlot_effects("yearly_rain_lag", "Lagged yearly rain (cm)", "blue", " ")
 water_temp_plot <- sjPlot_effects("WaterTemp", "Water temperature (°C)", "blue", " ")
+yearly_rain_plot <- sjPlot_effects("yearly_rain", "Yearly rain (cm)", "green", " ")
 
-cowplot::plot_grid(canopy_plot, water_plot, year_plot, sub_veg_plot, lag_rain_plot, water_temp_plot, nrow = 2, align = "hv")
+# interaction plot for water regime and yearly rain
+# directly calling ggpredict because sjPlot's wrapper (get_model_data) won't let me get interaction data at intervals of 0.01
+plot_data <- ggpredict(mod.zi.no.salinity.linear, 
+                       terms = c("yearly_rain_scaled [-1.58:1.58 by=0.01]", "water_regime"),
+                       ci.level = 0.89,
+                       interval = "confidence") %>% 
+  as.data.frame() %>% 
+  mutate(unscaled = (x * col_sd$yearly_rain) + col_means$yearly_rain)
+
+interaction_plot <- ggplot(plot_data, aes(x = unscaled, y = predicted)) +
+  # geom_point(data = scaled_between_year, aes(x = yearly_rain, y = num_egg_masses, color = water_regime), alpha = 0.5) +
+  geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.3) +
+  geom_line(linewidth = 1, aes(color = group)) +
+  theme_bw() +
+  labs(x = "Yearly rain (cm)", y = "Number of egg masses", color = "Water regime", fill = "Water regime") +
+  scale_y_continuous(limits = c(0, 25)) +
+  scale_color_manual(values = c("black", "#49741A")) +
+  scale_fill_manual(values = c("#54494B", "#7DC82D"))
+
+# 3 cols, 2 rows
+effects_plots <- cowplot::plot_grid(canopy_plot, water_plot, year_plot, sub_veg_plot, lag_rain_plot, water_temp_plot, 
+                                    nrow = 2, align = "hv")
+
+cowplot::plot_grid(effects_plots, interaction_plot,
+                   nrow = 2, rel_heights = c(2, 1))
 
 # geom_smooth()# using sjPlot
 posterior <- as.matrix(mod.zi.no.salinity.linear)

@@ -7,7 +7,7 @@ library(here)
 library(lubridate)
 library(readxl)
 
-setwd(here::here("CRLF", "code"))
+setwd(here::here("code"))
 
 ### ~~~ *** DAILY RAINFALL EDA GRAPHS *** ~~~ ###
 rainfall_daily_long <- read_csv(here::here("data", "cm_daily_rain.csv")) %>% 
@@ -92,10 +92,11 @@ rain_to_compare_wide <- cm_rain %>%
 #   rename(corte_madera = yearly_rain_cortemadera, muir_woods = TOTALS, half_moon_bay = yearly_rain_halfmoonbay) %>% 
 #   filter(Water_Year > 1998, Water_Year < 2022)
 
-rain_to_compare <- rain_to_compare_wide %>% pivot_longer(cols = 2:4, names_to = "location", values_to = "rainfall")
+rain_to_compare <- rain_to_compare_wide %>% pivot_longer(cols = 2:5, names_to = "location", values_to = "rainfall")
 
 rain_to_compare_after_missing_data <- rain_to_compare_wide %>% 
-  filter(Water_Year > 2003)
+  filter(Water_Year > 2003) %>% 
+  select(-yearly_rain_lag)
 
 # plot rainfall by location
 ggplot(data = rain_to_compare, aes(x = Water_Year, y = rainfall, color = location)) + geom_line()
