@@ -127,19 +127,6 @@ data <- unfiltered_data %>%
 
 write_csv(data, here::here("data", "filtered_raw_data.csv"))
 
-length(unique(raw_data$EventGUID))
-length(unique(unfiltered_data$EventGUID))
-length(unique(data$EventGUID))
-
-
-counts <- data %>% group_by(LocationID) %>% 
-    summarise(
-      count = n()
-    )
-
-ggplot(data = counts, aes(x = count)) +
-  geom_histogram()
-
 #### ~~~ *** BETWEEN YEAR DATA *** ~~~ ####
 
 between_year_data <- data %>% 
@@ -219,6 +206,8 @@ between_year_data_lagged <- scaled_between_year %>%
   arrange(BRDYEAR_scaled) %>%
   mutate(num_egg_masses_lag = lag(num_egg_masses, n = 3)) %>%
   ungroup()
+
+sum(!is.na(between_year_data_lagged$num_egg_masses_lag))
 
 #### write to CSV ####
 write_csv(between_year_data, here::here("data", "between_year_data.csv"))

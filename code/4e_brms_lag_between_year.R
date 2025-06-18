@@ -20,13 +20,13 @@ scaled_lag_between_year <- complete_lag_btw_data %>%
   mutate(
     BRDYEAR_scaled = as.vector(scale(BRDYEAR)),
     mean_percent_sub_scaled = as.vector(scale(mean_percent_sub)),
-    mean_percent_emerg_scaled = as.vector(scale(mean_percent_emerg)),
+    # mean_percent_emerg_scaled = as.vector(scale(mean_percent_emerg)),
     mean_percent_water_scaled = as.vector(scale(mean_percent_water)),
     interpolated_canopy_scaled = as.vector(scale(interpolated_canopy)),
     yearly_rain_scaled = as.vector(scale(yearly_rain)),
-    mean_max_depth_scaled = as.vector(scale(mean_max_depth)),
-    max_depth_scaled = as.vector(scale(max_depth)),
-    AirTemp_scaled = as.vector(scale(AirTemp)),
+    # mean_max_depth_scaled = as.vector(scale(mean_max_depth)),
+    # max_depth_scaled = as.vector(scale(max_depth)),
+    # AirTemp_scaled = as.vector(scale(AirTemp)),
     WaterTemp_scaled = as.vector(scale(WaterTemp)),
     yearly_rain_lag_scaled = as.vector(scale(yearly_rain_lag)),
     num_egg_masses_lag_scaled = as.vector(scale(num_egg_masses_lag)))
@@ -148,9 +148,29 @@ main_color <- "#0B5563"
 background <- "#5299D3"
 background2 <- "#BEB8EB"
 
+sjPlot_effects <- function(term, xlab, ylab = "Number of egg masses") {
+  
+  plot_data <- as.data.frame(get_model_data(lag.zi.linear, type = "pred", terms = paste0(term, "_scaled [-0.53:4.5, by = 0.01]"), interval = "confidence")) %>% 
+    select(-group, -group_col) %>% 
+    mutate(unscaled = (x * col_sd_lag[[term]]) + col_means_lag[[term]])
+  
+  xlim <- c(round(min(plot_data$unscaled)), round(max(plot_data$unscaled)))
+  
+  ggplot(plot_data, aes(x = unscaled, y = predicted)) +
+    # point data for appendix plot
+    # geom_point(data = scaled_between_year, aes(x = .data[[term]], y = num_egg_masses), alpha = 0.5, color = bg) +
+    geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.3, fill = background) +
+    geom_line(linewidth = 1, color = main_color) +
+    theme_bw() +
+    labs(x = xlab, y = ylab) +
+    scale_x_continuous(limits = xlim) +
+    scale_y_continuous(limits = c(-1, 55))
+}
+canopy_plot <- sjPlot_effects("num_egg_masses_lag", "Egg masses 3 years prior")
 
-# canopy -- significant
-canopy_plot_lag <- ggplot(pred_unscaled_lag, aes(x = interpolated_canopy_unscaled, y = estimate)) +
+
+# lagged egg masses
+egg_mass_lag <- ggplot(pred_unscaled_lag, aes(x = num_egg_masses_lag_scaled, y = estimate)) +
   scale_y_continuous(limits = c(0, 200)) +
   theme_bw() +
   # geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.2) +
@@ -158,10 +178,10 @@ canopy_plot_lag <- ggplot(pred_unscaled_lag, aes(x = interpolated_canopy_unscale
   geom_line(aes(y = conf.high), stat = "smooth", color = "black", alpha = 0.5) +
   geom_point(aes(y = num_egg_masses), color = background, alpha = 0.035) +
   geom_line(stat = "smooth", color = main_color, linewidth = 1.5) +
-  labs(x = "Percent canopy cover", y = "Number of egg masses")
+  labs(x = "Egg masses from 3 years prior", y = "Number of egg masses")
+egg_mass_lag
 
-
-plot_grid(canopy_plot, water_plot, nrow = 1)
+cowplot::plot_grid(canopy_plot, water_plot, nrow = 1)
 
 # BRDYEAR -- almost significant, nice to see trends over time
 year_plot_lag <- ggplot(pred_unscaled_lag, aes(x = BRDYEAR_unscaled, y = estimate)) +
