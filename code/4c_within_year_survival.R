@@ -115,6 +115,30 @@ predict_fun <- function(...) {
   1 - predictRisk(...)
 }
 
+# rainfall plot
+adjusted_curves <- adjustedsurv(
+  data = onset_grouped,
+  variable = "rain_to_date_groups",
+  ev_time = "dayOfWY",
+  event = "breeding_status",
+  method = "direct",
+  conf_level = 0.89,
+  outcome_model = cox_frailty_groups,
+  predict_fun = predict_fun,
+)
+
+rainfall_plot <- plot(adjusted_curves, 
+     use_boot = TRUE,
+     cif = TRUE,
+     xlab = "Day of Water Year",
+     ylab = "Cumulative Incidence of Breeding",
+     custom_colors = palette_blue) +
+  theme_bw() +
+  theme(legend.position = c(0.2, 0.7) ) +
+  scale_y_continuous(limits = c(0, 1)) +
+  labs(color = "Rainfall Group")
+
+# canopy plot
 adjusted_curves <- adjustedsurv(
   data = onset_grouped,
   variable = "canopy_groups",
@@ -127,16 +151,7 @@ adjusted_curves <- adjustedsurv(
   predict_fun = predict_fun,
 )
 
-plot(adjusted_curves, 
-     use_boot = TRUE,
-     cif = TRUE,
-     xlab = "Day of Water Year",
-     ylab = "Cumulative Incidence of Breeding",
-     custom_colors = palette_blue) +
-  theme_bw() +
-  labs(color = "Rainfall Group")
-
-plot(adjusted_curves, 
+canopy_plot <- plot(adjusted_curves, 
      use_boot = TRUE,
      cif = TRUE,
      # custom_linetypes = c(3,3,3,3,1),
@@ -146,8 +161,12 @@ plot(adjusted_curves,
      legend.position = NULL,
      custom_colors = palette_brown) +
   theme_bw() +
-  labs(color = "Canopy Cover")
+  theme(legend.position = c(0.2, 0.7) ) +
+  scale_y_continuous(limits = c(0, 1)) +
+  labs(color = "Canopy Cover") 
   # scale_linetype_manual(values = c(3,3,3,3,1), name = NULL, labels = NULL)
+
+cowplot::plot_grid(rainfall_plot, canopy_plot, labels = "AUTO")
 
 # ungrouped rain_to_date model
 rain_model <- coxph(Surv(dayOfWY, next_survey, breeding_status) ~ 

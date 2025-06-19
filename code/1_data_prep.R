@@ -161,8 +161,6 @@ between_year_data <- data %>%
 
 between_year_data$complete_case <- complete.cases(between_year_data)
 
-nrow(between_year_data %>% filter(complete_case))
-
 ##### (un)scaling ####
 scaled_between_year <- between_year_data %>% 
   filter(complete_case == TRUE) %>% 

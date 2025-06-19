@@ -10,6 +10,7 @@ library(tidyverse)
 library(ggridges)
 library(rstan)
 library(tidybayes)
+library(ggeffects)
 
 scaled_between_year <- read_csv(here::here("data", "scaled_between_year.csv")) %>% 
   mutate(water_flow = as.factor(water_flow),
@@ -206,7 +207,7 @@ background_2 <- "#FF9505"
 main_color_3 <- "#0070CC"
 background_3 <- "#47ACFF"
 
-
+#### marginaleffects by hand plots -- old ####
 # canopy -- significant
 canopy_plot <- ggplot(pred_unscaled, aes(x = interpolated_canopy_unscaled, y = estimate)) +
   scale_y_continuous(limits = c(-1, 175)) +
@@ -294,9 +295,9 @@ sjPlot_effects <- function(term, xlab, color, ylab = "Number of egg masses") {
            mc <- main_color
            bg <- background
          },
-         orange = {
-           mc <- main_color_2
-           bg <- background_2
+         grey = {
+           mc <- "black"
+           bg <- "#54494B"
          },
          blue = {
            mc <- main_color_3
@@ -320,7 +321,7 @@ sjPlot_effects <- function(term, xlab, color, ylab = "Number of egg masses") {
 }
 canopy_plot <- sjPlot_effects("interpolated_canopy", "Percent canopy cover", "green")
 water_plot <- sjPlot_effects("mean_percent_water", "Percent open water", "green", " ")
-year_plot <- sjPlot_effects("BRDYEAR", "Breeding year", "orange", " ")
+year_plot <- sjPlot_effects("BRDYEAR", "Breeding year", "grey", " ")
 sub_veg_plot <- sjPlot_effects("mean_percent_sub", "Percent submergent vegetation", "blue")
 lag_rain_plot <- sjPlot_effects("yearly_rain_lag", "Lagged yearly rain (cm)", "blue", " ")
 water_temp_plot <- sjPlot_effects("WaterTemp", "Water temperature (°C)", "blue", " ")
