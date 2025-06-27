@@ -79,6 +79,8 @@ powerscale_sensitivity(mod.zi.no.salinity.linear)
 powerscale_plot_dens(mod.zi.no.salinity.linear)
 # plotting prior and posterior distributions
 
+ranef(mod.zi.no.salinity.linear)
+
 get_variables(mod.zi.no.salinity.linear)
 #### prior and posterior plots ####
 prior_dist <- prior_draws(mod.zi.no.salinity.linear,
@@ -389,9 +391,10 @@ ggplot(re, aes(x = value, y = Site)) +
   geom_density_ridges(alpha = 0.7, rel_min_height = 0.01, scale = 0.8, aes(fill = Watershed)) +
   geom_point(aes(x = mean)) +
   geom_linerange(aes(xmin = lower, xmax = upper)) +
+  geom_vline(aes(xintercept = 0), color = "black", linetype = 2) +
   scale_x_continuous(limits = c(-8, 8)) +
   scale_y_discrete(expand = expansion(mult = c(0.01, 0.06))) +
-  labs(x = "Distribution") +
+  labs(x = "Random Intercept (log scale)") +
   theme_ridges(center_axis_labels = TRUE)
 
 #### marginaleffects by hand plots -- old ####

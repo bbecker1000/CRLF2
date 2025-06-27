@@ -28,18 +28,19 @@ unscaled_within_year$complete_case <- complete.cases(unscaled_within_year)
 complete_onset <- unscaled_within_year %>% 
   filter(complete_case == TRUE,
          next_survey > dayOfWY) %>% 
-  select(-complete_case)
+  select(-complete_case) %>% 
+  mutate(water_flow = fct_infreq(water_flow))
 
-
-summary_stats_data <- complete_onset %>%
-  filter(breeding_status == 1) %>%
-  mutate(beginningWY = ymd(paste0(BRDYEAR - 1, "-10-01")),
-         first_breeding = beginningWY + days(dayOfWY))
-
-ggplot(summary_stats_data, aes(x = dayOfWY)) +
-  geom_histogram()
-
-summary(summary_stats_data$dayOfWY)
+# 
+# summary_stats_data <- complete_onset %>%
+#   filter(breeding_status == 1) %>%
+#   mutate(beginningWY = ymd(paste0(BRDYEAR - 1, "-10-01")),
+#          first_breeding = beginningWY + days(dayOfWY))
+# 
+# ggplot(summary_stats_data, aes(x = dayOfWY)) +
+#   geom_histogram()
+# 
+# summary(summary_stats_data$dayOfWY)
 # write to CSV
 write_csv(complete_onset, here::here("data", "complete_onset_of_breeding.csv"))
 
@@ -73,9 +74,9 @@ ggplot(data = onset_grouped, aes(x = canopy_groups)) +
 # frailty model with grouped rainfall data
 cox_frailty_groups <- coxph(Surv(dayOfWY, next_survey, breeding_status) ~ 
                              rain_to_date_groups +
-                             canopy_groups +
-                             # water_flow +
-                             # water_regime +
+                             # canopy_groups +
+                             water_flow +
+                             water_regime +
                              frailty(LocationID), 
                            data = onset_grouped, 
                            control = coxph.control(iter.max = 50),

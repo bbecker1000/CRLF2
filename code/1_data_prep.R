@@ -150,7 +150,7 @@ between_year_data <- data %>%
          proportion_high_water_vis = if_else(is.nan(proportion_high_water_vis), 0, proportion_high_water_vis),
          across(everything(), ~first(.))) %>% 
   select(-MaxD, -WaterSalinity, -NumberofEggMasses, -ground_sub, -ground_emerg, -ground_open_water, 
-         -DrySurvey, -WaterVis, -AirTemp, -mean_max_depth, -max_depth, -mean_percent_emerg) %>% 
+         -DrySurvey, -WaterVis, -AirTemp, -mean_max_depth, -mean_percent_emerg) %>% 
   mutate(
     # mean_salinity = if_else(CoastalSite, mean_salinity, 0),
          # max_salinity = if_else(CoastalSite, max_salinity, 0),
@@ -171,10 +171,12 @@ scaled_between_year <- between_year_data %>%
           interpolated_canopy_scaled = as.vector(scale(interpolated_canopy)),
           yearly_rain_scaled = as.vector(scale(yearly_rain)),
           # mean_max_depth_scaled = as.vector(scale(mean_max_depth)),
-          # max_depth_scaled = as.vector(scale(max_depth)),
+          max_depth_scaled = as.vector(scale(max_depth)),
           # AirTemp_scaled = as.vector(scale(AirTemp)),
           WaterTemp_scaled = as.vector(scale(WaterTemp)),
           yearly_rain_lag_scaled = as.vector(scale(yearly_rain_lag)))
+
+nrow(scaled_between_year)
 
 # for unscaling later
 col_means <- between_year_data %>% 
@@ -205,7 +207,6 @@ between_year_data_lagged <- scaled_between_year %>%
   mutate(num_egg_masses_lag = lag(num_egg_masses, n = 3)) %>%
   ungroup()
 
-sum(!is.na(between_year_data_lagged$num_egg_masses_lag))
 
 #### write to CSV ####
 write_csv(between_year_data, here::here("data", "between_year_data.csv"))
@@ -308,6 +309,22 @@ within_year_with_sun_hours <- left_join(onset_of_breeding, sun_hours, by = c("Lo
 
 # write to CSV
 write_csv(within_year_with_sun_hours, here::here("data", "onset_of_breeding.csv"))
+
+# looking into earliest and latest onsets for results section
+marin_sites <- within_year_with_sun_hours %>% 
+  ungroup() %>% 
+  filter(breeding_status == 1,
+         Watershed %in% c("Redwood Creek", "Rodeo Lagoon", "Tennessee Valley", "Wilkins Gulch")) %>% 
+  arrange(dayOfWY)
+  summarize(mean_onset = mean(dayOfWY),
+            median_onset = median(dayOfWY))
+
+sm_sites <- within_year_with_sun_hours %>% 
+  ungroup() %>% 
+  filter(breeding_status == 1,
+         Watershed %in% c("Milagra Creek", "Kanoff Creek", "Laguna Salada")) %>% 
+  summarize(mean_onset = mean(dayOfWY),
+            median_onset = median(dayOfWY))
 
 # this is not updated to include days since first rainfall. I'll update it if we end up using timing
 # instead of onset
