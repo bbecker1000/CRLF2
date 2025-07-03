@@ -83,7 +83,7 @@ unfiltered_data <- raw_data %>% select(-ParkCode, -ProjectCode, -BTime, -TTime, 
   ) %>% 
   mutate(County = case_when(
     Watershed %in% c("Redwood Creek", "Tennessee Valley", "Rodeo Lagoon", "Oakwood Valley", "Wilkins Gulch") ~ "Marin",
-    Watershed %in% c("Milagra Creek", "Laguna Salada", "Kanoff Creek", "West Union Creek") ~ "San Mateo",
+    Watershed %in% c("Milagra Creek", "Laguna Salada", "Kanoff Creek", "West Union") ~ "San Mateo",
     TRUE ~ NA_character_
   ))
 

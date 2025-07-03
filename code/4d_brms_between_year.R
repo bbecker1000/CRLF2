@@ -16,7 +16,8 @@ scaled_between_year <- read_csv(here::here("data", "scaled_between_year.csv")) %
   mutate(water_flow = as.factor(water_flow),
          water_regime = as.factor(water_regime),
          water_flow = fct_infreq(water_flow),
-         LocationID = as.factor(LocationID))
+         LocationID = as.factor(LocationID),
+         County = as.factor(County))
 
 set.seed(42) # so the model will give us the same results each time
 
@@ -50,21 +51,23 @@ bprior.no.sal.linear.zi <- c(
 ##### model: mod.zi.no.salinity.linear ####
 mod.zi.no.salinity.linear <- brm(
   num_egg_masses ~ 
-       BRDYEAR_scaled +
-       # BRDYEAR_uncentered +
-       mean_percent_water_scaled + 
-       interpolated_canopy_scaled +
-       WaterTemp_scaled +  
-       mean_percent_sub_scaled +
-       yearly_rain_scaled +
-       yearly_rain_scaled : water_regime +
-       yearly_rain_lag_scaled +
-       water_regime +
-       yearly_rain_lag_scaled : water_regime +
-       water_flow +
-       # proportion_high_water_vis +
-       # proportion_na_water_vis +
-       (1 | Watershed/LocationID),
+    BRDYEAR_scaled +
+    # BRDYEAR_uncentered +
+    mean_percent_water_scaled + 
+    interpolated_canopy_scaled +
+    WaterTemp_scaled +  
+    mean_percent_sub_scaled +
+    yearly_rain_scaled +
+    yearly_rain_scaled : water_regime +
+    yearly_rain_lag_scaled +
+    water_regime +
+    yearly_rain_lag_scaled : water_regime +
+    water_flow +
+    # proportion_high_water_vis +
+    # proportion_na_water_vis +
+    # (1 | Watershed/LocationID) +
+    (BRDYEAR_scaled || Watershed/LocationID) +
+    (BRDYEAR_scaled || County),
   data = scaled_between_year, 
   family = zero_inflated_negbinomial(),
   prior = bprior.no.sal.linear.zi,
@@ -330,10 +333,6 @@ mcmc_intervals(posterior, point_est = "mean", prob = 0.89, prob_outer = 0.89,
 # plot_model(mod.zi.no.salinity.linear, type = "pred", terms = c("yearly_rain_lag_scaled"))
 
 
-
-##### OLD MODELS
-
-# hurdle GAM model no salinity
 #### plotting random effects -- watersheds ####
 # intercepts <- as.data.frame(ranef(mod.zi.no.salinity.linear)$Watershed) %>% 
 #   mutate(Watershed = rownames(.))
@@ -342,7 +341,7 @@ mcmc_intervals(posterior, point_est = "mean", prob = 0.89, prob_outer = 0.89,
 re <- as.matrix(mod.zi.no.salinity.linear) %>% 
   as.data.frame() %>% 
   pivot_longer(cols = everything(), names_to = "parameter", values_to = "value") %>% 
-  filter(str_detect(parameter, "(r_Watershed)\\[")) %>% 
+  filter(str_detect(parameter, "(r_Watershed)\\[")) %>%  # filter for Watershed
   mutate(parameter = str_remove_all(parameter, "r_Watershed\\[|,Intercept\\]"),
          parameter = str_replace(parameter, "[.]", " ")) %>% 
   rename(Watershed = parameter) %>% 
@@ -364,6 +363,7 @@ ggplot(re, aes(x = value, y = Watershed)) +
   scale_y_discrete(expand = expansion(mult = c(0.01, 0.06))) +
   labs(x = "Distribution") +
   theme_ridges(center_axis_labels = TRUE)
+
 #### plotting random effects -- sites within watersheds ####
 # intercepts <- as.data.frame(ranef(mod.zi.no.salinity.linear)$Watershed) %>% 
 #   mutate(Watershed = rownames(.))
@@ -372,7 +372,7 @@ ggplot(re, aes(x = value, y = Watershed)) +
 re <- as.matrix(mod.zi.no.salinity.linear) %>% 
   as.data.frame() %>% 
   pivot_longer(cols = everything(), names_to = "parameter", values_to = "value") %>% 
-  filter(str_detect(parameter, "(r_Watershed)\\:")) %>% 
+  filter(str_detect(parameter, "(r_Watershed)\\:")) %>%  #filter for Watersheds:Locations
   mutate(parameter = str_remove_all(parameter, "r_Watershed:LocationID\\[|,Intercept\\]"),
          parameter = str_replace(parameter, "[.]", " ")) %>% 
   # rename(Watershed = parameter) %>% 
@@ -396,6 +396,53 @@ ggplot(re, aes(x = value, y = Site)) +
   scale_y_discrete(expand = expansion(mult = c(0.01, 0.06))) +
   labs(x = "Random Intercept (log scale)") +
   theme_ridges(center_axis_labels = TRUE)
+
+#### (added July 3) plotting random effects -- County ####
+
+#### (added July 3) plotting random slopes -- BRDYEAR for LocationID ####
+re <- as.matrix(mod.zi.no.salinity.linear) %>%
+  as.data.frame() %>%
+  pivot_longer(cols = everything(), names_to = "parameter", values_to = "value") %>%
+  filter(str_detect(parameter, "r_Watershed:LocationID\\[.*?,BRDYEAR_scaled\\]")) %>% 
+  #filter only random slopes for Watershed:LocationID
+  mutate(parameter = str_remove_all(parameter, "r_Watershed:LocationID\\[|,BRDYEAR_scaled\\]"),
+         parameter = str_replace_all(parameter, "[.]", " ")) %>%
+  rename(Location = parameter) %>%
+  group_by(Location) %>%
+  mutate(
+    mean = mean(value),
+    lower = quantile(value, 0.055),
+    upper = quantile(value, 0.945)
+  ) %>%
+  ungroup() %>%
+  arrange(desc(mean)) %>%
+  mutate(Location = fct_inorder(Location, ordered = TRUE))
+
+## plot from Robin
+re <- re %>%
+  separate(Location, into = c("Watershed", "Site"), sep = "_", remove = FALSE)
+
+ggplot(re, aes(x = value, y = fct_rev(Site), fill=Watershed)) +  # reverse to show top at top
+  geom_density_ridges(
+    alpha = 0.7,
+    rel_min_height = 0.01,
+    scale = 0.8,
+    aes(fill = Watershed)
+  ) +
+  geom_point(aes(x = mean), color = "black", size = 1) +
+  geom_linerange(aes(xmin = lower, xmax = upper), color = "black") +
+  geom_vline(xintercept = 0, color = "black", linetype = 2) +
+  scale_x_continuous(limits = c(-3, 3)) +  # adjust based on your slope scale
+  scale_y_discrete(expand = expansion(mult = c(0.01, 0.06))) +
+  labs(
+    x = "Random Slope Deviation (BRDYEAR_scaled)",
+    y = "Location",
+    title = "Posterior Distributions of Random Slopes by Location",
+    subtitle = "89% Credible Intervals and Density Ridges"
+  ) +
+  theme_ridges(center_axis_labels = TRUE) +
+  theme(legend.position = "right")
+
 
 #### marginaleffects by hand plots -- old ####
 # canopy -- significant
