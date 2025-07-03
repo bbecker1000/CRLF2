@@ -80,7 +80,12 @@ unfiltered_data <- raw_data %>% select(-ParkCode, -ProjectCode, -BTime, -TTime, 
     LocationID = as.factor(LocationID),
     WaterVis_continuous = WaterVis,
     WaterVis = as.integer(if_else(is.na(WaterVis), NA, if_else(WaterVis < 0.3, 0, 1)))
-  )
+  ) %>% 
+  mutate(County = case_when(
+    Watershed %in% c("Redwood Creek", "Tennessee Valley", "Rodeo Lagoon", "Oakwood Valley", "Wilkins Gulch") ~ "Marin",
+    Watershed %in% c("Milagra Creek", "Laguna Salada", "Kanoff Creek", "West Union Creek") ~ "San Mateo",
+    TRUE ~ NA_character_
+  ))
 
 
 ##### ~~~ *** DATA FILTERING *** ~~~ #####
@@ -131,7 +136,7 @@ write_csv(data, here::here("data", "filtered_raw_data.csv"))
 
 between_year_data <- data %>% 
   select(LocationID, BRDYEAR, Watershed, NumberofEggMasses, AirTemp, WaterTemp, MaxD, WaterSalinity, CoastalSite, yearly_rain, yearly_rain_lag,
-         ground_sub, ground_emerg, ground_open_water, interpolated_canopy, water_flow, water_regime, DrySurvey, WaterVis) %>% 
+         ground_sub, ground_emerg, ground_open_water, interpolated_canopy, water_flow, water_regime, DrySurvey, WaterVis, County) %>% 
   group_by(LocationID, BRDYEAR) %>% 
   summarize(
          mean_max_depth = ifelse(all(is.na(MaxD)), NA, mean(MaxD, na.rm = TRUE)),
@@ -181,7 +186,7 @@ nrow(scaled_between_year)
 # for unscaling later
 col_means <- between_year_data %>% 
   filter(complete_case == TRUE) %>%
-  select(-Watershed, -LocationID, -dry_year, -CoastalSite, -water_flow, -water_regime, -complete_case) %>% 
+  select(-Watershed, -LocationID, -dry_year, -CoastalSite, -water_flow, -water_regime, -complete_case, -County) %>% 
   colMeans() %>% 
   t() %>% 
   as.data.frame()
@@ -190,7 +195,7 @@ write_csv(col_means, here::here("data", "between_year_col_means.csv"))
 
 col_sd <- between_year_data %>% 
   filter(complete_case == TRUE) %>%
-  select(-Watershed, -LocationID, -dry_year, -CoastalSite, -water_flow, -water_regime, -complete_case) %>% 
+  select(-Watershed, -LocationID, -dry_year, -CoastalSite, -water_flow, -water_regime, -complete_case, -County) %>% 
   apply(., 2, sd) %>% 
   t() %>% 
   as.data.frame()
