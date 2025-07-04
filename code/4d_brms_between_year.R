@@ -443,6 +443,49 @@ ggplot(re_locID, aes(x = value, y = fct_rev(Site), fill=Watershed)) +  # reverse
   theme_ridges(center_axis_labels = TRUE) +
   theme(legend.position = "right")
 
+#### NEW JULY 3: plotting random slopes by County for BRDYEAR ####
+re_county <- as.matrix(mod.zi.no.salinity.linear) %>%
+  as.data.frame() %>%
+  pivot_longer(cols = everything(), names_to = "parameter", values_to = "value") %>%
+  filter(str_detect(parameter, "r_County\\[.*?,BRDYEAR_scaled\\]")) %>% 
+  mutate(parameter = str_remove_all(parameter, "r_County\\[|,BRDYEAR_scaled\\]"),
+         parameter = str_replace_all(parameter, "[.]", " ")) %>%
+  rename(County = parameter) %>%
+  group_by(County) %>%
+  mutate(
+    mean = mean(value),
+    lower = quantile(value, 0.055),
+    upper = quantile(value, 0.945)
+  ) %>%
+  ungroup() %>%
+  arrange(desc(mean)) %>%
+  mutate(County = fct_inorder(County, ordered = TRUE))
+
+# palette
+marin_color = c("yellow4")
+sanmateo_color = c('orchid4')
+
+ggplot(re_county, aes(x = value, y = fct_rev(County))) +  # reverse to show top at top
+  geom_density_ridges(
+    alpha = 0.7,
+    rel_min_height = 0.01,
+    scale = 0.8,
+    aes(fill=County)) +
+  geom_point(aes(x = mean), color = "black", size = 1) +
+  geom_linerange(aes(xmin = lower, xmax = upper), color = "black") +
+  geom_vline(xintercept = 0, color = "black", linetype = 2) +
+  scale_x_continuous(limits = c(-3, 3)) +  # adjust based on your slope scale
+  scale_y_discrete(expand = expansion(mult = c(0.01, 0.06))) +
+  scale_fill_manual(values = c("Marin" = marin_color, "San Mateo" = sanmateo_color))+
+  labs(
+    x = "Random Slope Deviation (BRDYEAR_scaled)",
+    y = "County",
+    title = "Posterior Distributions of Random Slopes by County",
+    subtitle = "89% Credible Intervals and Density Ridges"
+  ) +
+  theme_ridges(center_axis_labels = TRUE) +
+  theme(legend.position = "right")
+
 
 #### marginaleffects by hand plots -- old ####
 # canopy -- significant
