@@ -333,6 +333,7 @@ mcmc_intervals(posterior, point_est = "mean", prob = 0.89, prob_outer = 0.89,
 # plot_model(mod.zi.no.salinity.linear, type = "pred", terms = c("yearly_rain_lag_scaled"))
 
 
+
 #### plotting random effects -- watersheds ####
 # intercepts <- as.data.frame(ranef(mod.zi.no.salinity.linear)$Watershed) %>% 
 #   mutate(Watershed = rownames(.))
@@ -397,10 +398,9 @@ ggplot(re, aes(x = value, y = Site)) +
   labs(x = "Random Intercept (log scale)") +
   theme_ridges(center_axis_labels = TRUE)
 
-#### (added July 3) plotting random effects -- County ####
 
 #### (added July 3) plotting random slopes -- BRDYEAR for LocationID ####
-re <- as.matrix(mod.zi.no.salinity.linear) %>%
+re_locID <- as.matrix(mod.zi.no.salinity.linear) %>%
   as.data.frame() %>%
   pivot_longer(cols = everything(), names_to = "parameter", values_to = "value") %>%
   filter(str_detect(parameter, "r_Watershed:LocationID\\[.*?,BRDYEAR_scaled\\]")) %>% 
@@ -418,11 +418,11 @@ re <- as.matrix(mod.zi.no.salinity.linear) %>%
   arrange(desc(mean)) %>%
   mutate(Location = fct_inorder(Location, ordered = TRUE))
 
-## plot from Robin
-re <- re %>%
+## following the plots Robin made
+re_locID <- re_locID %>%
   separate(Location, into = c("Watershed", "Site"), sep = "_", remove = FALSE)
 
-ggplot(re, aes(x = value, y = fct_rev(Site), fill=Watershed)) +  # reverse to show top at top
+ggplot(re_locID, aes(x = value, y = fct_rev(Site), fill=Watershed)) +  # reverse to show top at top
   geom_density_ridges(
     alpha = 0.7,
     rel_min_height = 0.01,
