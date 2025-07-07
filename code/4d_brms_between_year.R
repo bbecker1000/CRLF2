@@ -435,10 +435,10 @@ ggplot(re_locID, aes(x = value, y = fct_rev(Site), fill=Watershed)) +  # reverse
   scale_x_continuous(limits = c(-3, 3)) +  # adjust based on your slope scale
   scale_y_discrete(expand = expansion(mult = c(0.01, 0.06))) +
   labs(
-    x = "Random Slope Deviation (BRDYEAR_scaled)",
-    y = "Location",
-    title = "Posterior Distributions of Random Slopes by Location",
-    subtitle = "89% Credible Intervals and Density Ridges"
+    x = "Random Slope Deviation (Year)",
+    y = "Site"
+    # title = "Posterior Distributions of Random Slopes by Location",
+    # subtitle = "89% Credible Intervals and Density Ridges"
   ) +
   theme_ridges(center_axis_labels = TRUE) +
   theme(legend.position = "right")
@@ -478,10 +478,10 @@ ggplot(re_county, aes(x = value, y = fct_rev(County))) +  # reverse to show top 
   scale_y_discrete(expand = expansion(mult = c(0.01, 0.06))) +
   scale_fill_manual(values = c("Marin" = marin_color, "San Mateo" = sanmateo_color))+
   labs(
-    x = "Random Slope Deviation (BRDYEAR_scaled)",
-    y = "County",
-    title = "Posterior Distributions of Random Slopes by County",
-    subtitle = "89% Credible Intervals and Density Ridges"
+    x = "Random Slope Deviation (Year)",
+    y = "County"
+    # title = "Posterior Distributions of Random Slopes by County",
+    # subtitle = "89% Credible Intervals and Density Ridges"
   ) +
   theme_ridges(center_axis_labels = TRUE) +
   theme(legend.position = "right")
