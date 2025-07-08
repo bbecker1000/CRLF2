@@ -342,7 +342,10 @@ mcmc_intervals(posterior, point_est = "mean", prob = 0.89, prob_outer = 0.89,
 re <- as.matrix(mod.zi.no.salinity.linear) %>% 
   as.data.frame() %>% 
   pivot_longer(cols = everything(), names_to = "parameter", values_to = "value") %>% 
-  filter(str_detect(parameter, "(r_Watershed)\\[")) %>%  # filter for Watershed
+  # filter(str_detect(parameter, "(r_Watershed)\\[")) %>%  # filter for Watershed
+  filter(str_detect(parameter, "(r_Watershed)\\["), 
+         !str_detect(parameter, ",BRDYEAR_scaled\\]")) %>% 
+          # filter for Watershed INTERCEPTS (NOT Year random slopes)
   mutate(parameter = str_remove_all(parameter, "r_Watershed\\[|,Intercept\\]"),
          parameter = str_replace(parameter, "[.]", " ")) %>% 
   rename(Watershed = parameter) %>% 
@@ -373,7 +376,9 @@ ggplot(re, aes(x = value, y = Watershed)) +
 re <- as.matrix(mod.zi.no.salinity.linear) %>% 
   as.data.frame() %>% 
   pivot_longer(cols = everything(), names_to = "parameter", values_to = "value") %>% 
-  filter(str_detect(parameter, "(r_Watershed)\\:")) %>%  #filter for Watersheds:Locations
+  filter(str_detect(parameter, "r_Watershed\\:"), 
+         !str_detect(parameter, ",BRDYEAR_scaled\\]")) %>%
+        # filter for Watershed:LocationID random INTERCEPTS, exclude random slopes for BRDYEAR
   mutate(parameter = str_remove_all(parameter, "r_Watershed:LocationID\\[|,Intercept\\]"),
          parameter = str_replace(parameter, "[.]", " ")) %>% 
   # rename(Watershed = parameter) %>% 
@@ -479,7 +484,7 @@ ggplot(re_county, aes(x = value, y = fct_rev(County))) +  # reverse to show top 
   scale_fill_manual(values = c("Marin" = marin_color, "San Mateo" = sanmateo_color))+
   labs(
     x = "Random Slope Deviation (Year)",
-    y = "County"
+    y = "County",
     # title = "Posterior Distributions of Random Slopes by County",
     # subtitle = "89% Credible Intervals and Density Ridges"
   ) +
