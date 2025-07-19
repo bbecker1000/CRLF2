@@ -32,7 +32,7 @@ bprior.no.sal.linear.zi <- c(
   prior(normal(0, 0.5), coef = BRDYEAR_scaled),
   prior(normal(-0.5, 0.5), coef = interpolated_canopy_scaled), 
   prior(normal(0.25, 0.5), coef = mean_percent_sub_scaled), 
-  prior(normal(0.0, 0.5), coef = mean_percent_water_scaled), # add squared term
+  prior(normal(0.0, 0.5), coef = mean_percent_water_scaled),
   # prior(normal(0.5, 1), coef = water_flowlentic), 
   prior(normal(0, 1), coef = water_flowboth),
   prior(normal(-0.5, 1), coef = water_flowlotic), 
@@ -42,9 +42,7 @@ bprior.no.sal.linear.zi <- c(
   prior(normal(0.25, 1), coef = yearly_rain_scaled), 
   prior(normal(0.25, 1), coef = yearly_rain_scaled:water_regimeseasonal),
   prior(normal(0.25, 1), coef = yearly_rain_lag_scaled:water_regimeseasonal)
-  # prior(normal(0.25, 1), coef = proportion_high_water_vis),
-  # prior(normal(0, 1), coef = proportion_na_water_vis)
-  # prior(normal(0, 1), coef = water_visunknown)
+  # prior(normal(0.25, 0.5), coef = max_depth_scaled)
 )
 
 
@@ -61,13 +59,12 @@ mod.zi.no.salinity.linear <- brm(
     yearly_rain_scaled : water_regime +
     yearly_rain_lag_scaled +
     water_regime +
+    # max_depth_scaled +
     yearly_rain_lag_scaled : water_regime +
     water_flow +
-    # proportion_high_water_vis +
-    # proportion_na_water_vis +
-    # (1 | Watershed/LocationID) +
-    (BRDYEAR_scaled || Watershed/LocationID) +
-    (BRDYEAR_scaled || County),
+    (1 | Watershed/LocationID),
+    # (BRDYEAR_scaled || Watershed/LocationID) +
+    # (BRDYEAR_scaled || County),
   data = scaled_between_year, 
   family = zero_inflated_negbinomial(),
   prior = bprior.no.sal.linear.zi,
@@ -95,7 +92,7 @@ prior_dist <- prior_draws(mod.zi.no.salinity.linear,
                                        "b_yearly_rain_scaled",
                                        "b_yearly_rain_lag_scaled",
                                        "b_water_regimeseasonal",
-                                       # "b_water_flowboth",
+                                       "b_max_depth_scaled",
                                        "b_water_flowlotic",
                                        "b_yearly_rain_scaled:water_regimeseasonal",
                                        "b_yearly_rain_lag_scaled:water_regimeseasonal"
@@ -111,7 +108,7 @@ prior_dist <- prior_draws(mod.zi.no.salinity.linear,
     "b_yearly_rain_scaled" ~ "Yearly Rain",
     "b_yearly_rain_lag_scaled" ~ "Lagged Yearly Rain",
     "b_water_regimeseasonal" ~ "Seasonal Water Regime",
-    # "b_water_flowboth" ~ "Intermediate Water Flow",
+    "b_max_depth_scaled" ~ "Max Depth",
     "b_water_flowlotic" ~ "Lotic Water Flow",
     "b_yearly_rain_scaled:water_regimeseasonal" ~ "Yearly Rain Scaled x Seasonal Water Regime",
     "b_yearly_rain_lag_scaled:water_regimeseasonal" ~ "Lagged Yearly Rain Scaled x Seasonal Water Regime"
@@ -130,7 +127,7 @@ posterior_dist <- as.matrix(mod.zi.no.salinity.linear) %>%
                     "b_yearly_rain_scaled",
                     "b_yearly_rain_lag_scaled",
                     "b_water_regimeseasonal",
-                    # "b_water_flowboth",
+                    "b_max_depth_scaled",
                     "b_water_flowlotic",
                     "b_yearly_rain_scaled:water_regimeseasonal",
                     "b_yearly_rain_lag_scaled:water_regimeseasonal"
@@ -145,7 +142,7 @@ posterior_dist <- as.matrix(mod.zi.no.salinity.linear) %>%
     "b_yearly_rain_scaled" ~ "Yearly Rain",
     "b_yearly_rain_lag_scaled" ~ "Lagged Yearly Rain",
     "b_water_regimeseasonal" ~ "Seasonal Water Regime",
-    # "b_water_flowboth" ~ "Intermediate Water Flow",
+    "b_max_depth_scaled" ~ "Max Depth",
     "b_water_flowlotic" ~ "Lotic Water Flow",
     "b_yearly_rain_scaled:water_regimeseasonal" ~ "Yearly Rain Scaled x Seasonal Water Regime",
     "b_yearly_rain_lag_scaled:water_regimeseasonal" ~ "Lagged Yearly Rain Scaled x Seasonal Water Regime"

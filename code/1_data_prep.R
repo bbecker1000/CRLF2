@@ -175,7 +175,7 @@ scaled_between_year <- between_year_data %>%
           mean_percent_water_scaled = as.vector(scale(mean_percent_water)),
           interpolated_canopy_scaled = as.vector(scale(interpolated_canopy)),
           yearly_rain_scaled = as.vector(scale(yearly_rain)),
-          # mean_max_depth_scaled = as.vector(scale(mean_max_depth)),
+          # mean_max_depth_scaled = as.vector(scale(max_depth)),
           max_depth_scaled = as.vector(scale(max_depth)),
           # AirTemp_scaled = as.vector(scale(AirTemp)),
           WaterTemp_scaled = as.vector(scale(WaterTemp)),
