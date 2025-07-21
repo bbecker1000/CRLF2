@@ -25,8 +25,8 @@ set.seed(42) # so the model will give us the same results each time
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 
-# ZI linear model
-##### priors: bprior.no.sal.linear.zi ####
+# ZI LINEAR MODEL ####
+## priors: bprior.no.sal.linear.zi ####
 bprior.no.sal.linear.zi <- c(
   #counts
   prior(normal(0, 0.5), coef = BRDYEAR_scaled),
@@ -46,7 +46,7 @@ bprior.no.sal.linear.zi <- c(
 )
 
 
-##### model: mod.zi.no.salinity.linear ####
+## model: mod.zi.no.salinity.linear ####
 mod.zi.no.salinity.linear <- brm(
   num_egg_masses ~ 
     BRDYEAR_scaled +
@@ -78,11 +78,10 @@ summary(mod.zi.no.salinity.linear, prob = 0.89)
 powerscale_sensitivity(mod.zi.no.salinity.linear)
 powerscale_plot_dens(mod.zi.no.salinity.linear)
 # plotting prior and posterior distributions
-
 ranef(mod.zi.no.salinity.linear)
-
 get_variables(mod.zi.no.salinity.linear)
-#### prior and posterior plots ####
+
+## prior and posterior plots ####
 prior_dist <- prior_draws(mod.zi.no.salinity.linear,
                           variable = c("b_BRDYEAR_scaled", 
                                        "b_mean_percent_water_scaled",
@@ -170,9 +169,7 @@ prior_post_plot <- ggplot(data = prior_post, aes(x = value, y = parameter, fill 
   theme_ridges(center_axis_labels = TRUE) +
   scale_fill_manual(values = c("Prior" = prior_color, "Posterior" = posterior_color))
 prior_post_plot
-
-
-##### sjPlot effects plots: mod.zi.no.salinity.linear #####
+### sjPlot effects plots: mod.zi.no.salinity.linear #####
 
 pred <- predictions(mod.zi.no.salinity.linear, conf_level = 0.89, type = "prediction", ndraws = 10, re_formula = NA)
 pred <- get_draws(pred)
@@ -289,7 +286,7 @@ palette_green <- c(
 
 color_scheme_set(palette_green)
 
-#### forest plot for appendix ####
+### forest plot for appendix ####
 mcmc_intervals(posterior, point_est = "mean", prob = 0.89, prob_outer = 0.89,
                inner_size = 1, 
                point_size = 2,
@@ -331,7 +328,8 @@ mcmc_intervals(posterior, point_est = "mean", prob = 0.89, prob_outer = 0.89,
 
 
 
-#### plotting random effects -- watersheds ####
+### plotting random effects #### 
+#### watershed - random effects ####
 # intercepts <- as.data.frame(ranef(mod.zi.no.salinity.linear)$Watershed) %>% 
 #   mutate(Watershed = rownames(.))
 # colnames(intercepts) <- str_remove_all(colnames(intercepts), ".Intercept")
@@ -365,7 +363,7 @@ ggplot(re, aes(x = value, y = Watershed)) +
   labs(x = "Distribution") +
   theme_ridges(center_axis_labels = TRUE)
 
-#### plotting random effects -- sites within watersheds ####
+#### sites within watersheds - random effects ####
 # intercepts <- as.data.frame(ranef(mod.zi.no.salinity.linear)$Watershed) %>% 
 #   mutate(Watershed = rownames(.))
 # colnames(intercepts) <- str_remove_all(colnames(intercepts), ".Intercept")
@@ -401,7 +399,8 @@ ggplot(re, aes(x = value, y = Site)) +
   theme_ridges(center_axis_labels = TRUE)
 
 
-#### (added July 3) plotting random slopes -- BRDYEAR for LocationID ####
+# JULY 3: RANDOM SLOPES with all covariates ####
+###### year slopes by LocationID ######
 re_locID <- as.matrix(mod.zi.no.salinity.linear) %>%
   as.data.frame() %>%
   pivot_longer(cols = everything(), names_to = "parameter", values_to = "value") %>%
@@ -445,7 +444,7 @@ ggplot(re_locID, aes(x = value, y = fct_rev(Site), fill=Watershed)) +  # reverse
   theme_ridges(center_axis_labels = TRUE) +
   theme(legend.position = "right")
 
-#### NEW JULY 3: plotting random slopes by County for BRDYEAR ####
+###### year slopes by County ######
 re_county <- as.matrix(mod.zi.no.salinity.linear) %>%
   as.data.frame() %>%
   pivot_longer(cols = everything(), names_to = "parameter", values_to = "value") %>%
@@ -476,7 +475,7 @@ ggplot(re_county, aes(x = value, y = fct_rev(County))) +  # reverse to show top 
   geom_point(aes(x = mean), color = "black", size = 1) +
   geom_linerange(aes(xmin = lower, xmax = upper), color = "black") +
   geom_vline(xintercept = 0, color = "black", linetype = 2) +
-  scale_x_continuous(limits = c(-3, 3)) +  # adjust based on your slope scale
+  scale_x_continuous(limits = c(-4, 4)) +  # adjust based on your slope scale
   scale_y_discrete(expand = expansion(mult = c(0.01, 0.06))) +
   scale_fill_manual(values = c("Marin" = marin_color, "San Mateo" = sanmateo_color))+
   labs(
@@ -489,7 +488,9 @@ ggplot(re_county, aes(x = value, y = fct_rev(County))) +  # reverse to show top 
   theme(legend.position = "right")
 
 
-#### marginaleffects by hand plots -- old ####
+
+# ~ ** OLD MODELS (hurdles & GAMs) ** ~ ####
+## marginaleffects by hand plots -- old ######
 # canopy -- significant
 canopy_plot <- ggplot(pred_unscaled, aes(x = interpolated_canopy_unscaled, y = estimate)) +
   scale_y_continuous(limits = c(-1, 175)) +
@@ -563,7 +564,8 @@ rain_water_regime_plot <- ggplot(pred_unscaled, aes(x = rain_unscaled, y = estim
   labs(x = "Yearly rainfall (cm)", y = "Number of egg masses") +
   facet_wrap(~water_regime, labeller = labeller(water_regime = c(perennial = "Perennial Water Regime", seasonal = "Seasonal Water Regime")))
 rain_water_regime_plot
-##### priors: bprior.no.sal #######
+## hurdle neg binomial ####
+### priors: bprior.no.sal ####### 
 bprior.no.sal <- c(
   #counts
   prior(normal(0, 0.5), coef = sBRDYEAR_scaled_1), 
@@ -591,7 +593,7 @@ bprior.no.sal <- c(
   prior(normal(-0.5, 0.5), dpar = "hu", coef = water_flowlotic)
 )
 
-##### model: mod.hurdle.no.salinity.gam ####  
+### model: mod.hurdle.no.salinity.gam ####### 
 t0 <- Sys.time()
 
 # 2024-10-07 adding all terms to hurdle model 
@@ -641,7 +643,7 @@ summary(mod.hurdle.no.salinity.gam)
 mod.hurdle <- mod.hurdle.no.salinity.gam
 summary(mod.hurdle)
 
-##### plots: hurdle no salinity #####
+### plots: hurdle no salinity ####### 
 
 pairs(mod.hurdle)
 # conditional_effects(mod.brm, surface = FALSE, prob = 0.8)
@@ -660,7 +662,8 @@ conditional_smooths(mod.hurdle, prob = 0.89)
 ## zi.gam
 
 # ZI GAM model
-##### priors: bprior.no.sal.zi.gam #####
+## GAM zero inflated ####
+### priors: bprior.no.sal.zi.gam ####### 
 bprior.no.sal.zi.gam <- c(
   #counts
   prior(normal(0, 0.5), coef = sBRDYEAR_scaled_1), 
@@ -677,7 +680,7 @@ bprior.no.sal.zi.gam <- c(
 )
 
 
-##### model: mod.zi.no.salinity.gam  ####
+### model: mod.zi.no.salinity.gam ####### 
 t0 <- Sys.time()
 
 # 2024-10-07 adding all terms to hurdle model
@@ -707,7 +710,7 @@ mod.zi.no.salinity.gam <- brm(
 summary(mod.zi.no.salinity.gam)
 
 
-##### plots: mod.zi.no.salinity.gam #####
+### plots: mod.zi.no.salinity.gam ####### 
 
 #pairs(mod.brm)
 pairs(mod.zi.no.salinity.gam)
@@ -723,7 +726,7 @@ conditional_smooths(mod.zi.no.salinity.gam, prob = 0.89)
 
 
 # hurdle LINEAR model
-##### lmer test #####
+## lmer test ####### 
 mod.1 <- glmer(
   num_egg_masses ~ 
     BRDYEAR_scaled + 
@@ -748,7 +751,8 @@ plot_model(mod.1)
 plot_model(mod.1, type = "eff", ci.lvl = 0.89)
 plot_model(mod.1, type = "int", ci.lvl = 0.89)
 
-##### priors: bprior.no.sal.linear #####
+## hurdle linear ####
+### priors: bprior.no.sal.linear ####### 
 get_prior(
   bf(num_egg_masses ~ 
        BRDYEAR_scaled + 
@@ -804,7 +808,7 @@ bprior.no.sal.linear <- c(
 
 
 
-##### model: mod.hurdle.no.salinity.linear #####
+### model: mod.hurdle.no.salinity.linear ####### 
 t0 <- Sys.time()
 
 mod.hurdle.no.salinity.linear <- brm(
@@ -852,7 +856,7 @@ beepr::beep(0)
 mod.hurdle <- mod.hurdle.no.salinity.linear
 summary(mod.hurdle, prob = 0.89)
 
-##### plots: mod.hurdle.no.salinity.linear #####
+### plots: mod.hurdle.no.salinity.linear ####### 
 
 #pairs(mod.brm)
 # conditional_effects(mod.brm, surface = FALSE, prob = 0.8)
