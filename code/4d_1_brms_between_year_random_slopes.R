@@ -23,6 +23,7 @@ rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 
 # seed from running mod.zi.random.slopes.year$fit@stan_args = 1045649118
+set.seed(1045649118)
 
 
 # priors ####
@@ -39,11 +40,12 @@ mod.zi.random.slopes.year <- brm(
   data = scaled_btw_year_data_random_slopes, 
   family = zero_inflated_negbinomial(),
   prior = bprior.zi.random.slopes.year,
-  chains = 3, cores = 3,
+  chains = 3, 
+  cores = 3,
   iter = 13000,
-  warmup = 10000,
+  warmup = 12000,
   sample_prior = TRUE,
-  control = list(adapt_delta = 0.99)
+  control = list(adapt_delta = 0.99, max_treedepth = 15)
 )
 
 summary(mod.zi.random.slopes.year, prob = 0.89)
@@ -95,6 +97,8 @@ ggplot(rs_county, aes(x = value, y = fct_rev(County))) +  # reverse to show top 
   theme_ridges(center_axis_labels = TRUE) +
   theme(legend.position = "right")
 
+ggsave("year random slopes by county.png", path = here::here('Output'), width = 6, height = 4, units = "in")
+
 ## by location in watershed ####
 rs_location <- as.matrix(mod.zi.random.slopes.year) %>%
   as.data.frame() %>%
@@ -139,6 +143,8 @@ ggplot(rs_location, aes(x = value, y = fct_rev(Site), fill=Watershed)) +  # reve
   theme_ridges(center_axis_labels = TRUE) +
   theme(legend.position = "right")
 
+ggsave("year random slopes by site.png", path = here::here('Output'), width = 7, height = 10, units = "in")
+
 ## watershed ####
 rs_watershed <- as.matrix(mod.zi.random.slopes.year) %>%
   as.data.frame() %>%
@@ -174,3 +180,5 @@ ggplot(rs_watershed, aes(x = value, y = fct_rev(Watershed))) +  # reverse to sho
   ) +
   theme_ridges(center_axis_labels = TRUE) +
   theme(legend.position = "right")
+
+ggsave("year random slopes by watershed.png", path = here::here('Output'), width = 8.5, height = 6, units = "in")
