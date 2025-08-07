@@ -5,6 +5,7 @@ library(lubridate)
 library(reshape2)
 library(readxl)
 
+# READ IN DATA ####
 # reading in data from spreadsheets
 setwd(here::here("code"))
 # for V6 data:
@@ -33,7 +34,7 @@ sun_hours <- read_csv(here::here("data", "Sun_Hours_WY2024.csv")) %>%
   mutate(cum_sun_hours = cumsum(dir_dur)) %>% 
   ungroup()
 
-#### DATA CLEANING ####
+# CLEAN DATA ####
 
 # removing unnecessary columns, making new column for total vegetation (to make sure it adds to 100), making data types more accurate/easier to use
 # the DATA variable that this pipe generates has all validated rows and has not been filtered
@@ -88,8 +89,7 @@ unfiltered_data <- raw_data %>% select(-ParkCode, -ProjectCode, -BTime, -TTime, 
   ))
 
 
-##### ~~~ *** DATA FILTERING *** ~~~ #####
-
+# ~~~ *** DATA FILTERING *** ~~~ #####
 
 # filter to only include [commented OUT: the 7 watersheds that Darren said had the most data] and only sites that had at least 2 surveys in a given year
 # [commented OUT: and only after 2009]
@@ -132,7 +132,7 @@ data <- unfiltered_data %>%
 
 write_csv(data, here::here("data", "filtered_raw_data.csv"))
 
-#### ~~~ *** BETWEEN YEAR DATA *** ~~~ ####
+# ~~~ *** BETWEEN YEAR DATA *** ~~~ ####
 
 between_year_data <- data %>% 
   select(LocationID, BRDYEAR, Watershed, NumberofEggMasses, AirTemp, WaterTemp, MaxD, WaterSalinity, CoastalSite, yearly_rain, yearly_rain_lag,
@@ -166,7 +166,7 @@ between_year_data <- data %>%
 
 between_year_data$complete_case <- complete.cases(between_year_data)
 
-##### (un)scaling ####
+## (un)scaling ####
 scaled_between_year <- between_year_data %>% 
   filter(complete_case == TRUE) %>% 
   mutate( BRDYEAR_scaled = as.vector(scale(BRDYEAR)),
@@ -202,7 +202,7 @@ col_sd <- between_year_data %>%
 
 write_csv(col_sd, here::here("data", "between_year_col_sd.csv"))
 
-##### lag effect ####
+## lag effect ####
 # if we want to include lagged egg masses, this is the code to do so
 # holding off for now because it produces so many NA's
 ## see 4e_brms_lag_betwee_year.R for other filters and use
@@ -212,7 +212,7 @@ between_year_data_lagged <- scaled_between_year %>%
   mutate(num_egg_masses_lag = lag(num_egg_masses, n = 3)) %>%
   ungroup()
 
-##### random slopes data ####
+## random slopes data ####
 # no covariates, only year 
 btw_year_data_random_slopes <- data %>% 
   select(LocationID, BRDYEAR, Watershed, County, NumberofEggMasses) %>% 
@@ -238,13 +238,13 @@ scaled_btw_year_data_random_slopes <- btw_year_data_random_slopes %>%
 nrow(scaled_btw_year_data_random_slopes)
 
 
-#### write to CSV ####
+## write to CSV ####
 write_csv(between_year_data, here::here("data", "between_year_data.csv"))
 write_csv(scaled_between_year, here::here("data", "scaled_between_year.csv"))
 write_csv(between_year_data_lagged, here::here("data", "lag_between_year_data.csv"))
 write_csv(scaled_btw_year_data_random_slopes, here::here("data", "scaled_btw_year_random_slopes.csv"))
 
-##### cover comparison ####
+## (old) cover comparison ####
 # between_year_data_for_cover_comparison <- data %>% 
 #   select(LocationID, BRDYEAR, Watershed, NumberofEggMasses, AirTemp, WaterTemp, MaxD, WaterSalinity, CoastalSite, yearly_rain, mean_percent_sub, 
 #          mean_percent_emerg, mean_percent_water, ground_sub, ground_emerg, ground_open_water, interpolated_sub, interpolated_emerg, interpolated_openwater) %>% 
@@ -272,7 +272,9 @@ write_csv(scaled_btw_year_data_random_slopes, here::here("data", "scaled_btw_yea
 
 
 
-#### ~~~ *** WITHIN YEAR DATA: survival model *** ~~~ ####
+# ~~~ *** WITHIN YEAR DATA *** ~~~ ####
+
+## survival model ####
 
 # getting rain to date for each day of the water year for every year
 rainfall_daily_transposed <- as.data.frame(t(rainfall_daily))
@@ -397,7 +399,7 @@ breeding_timing_with_sun_hours <- left_join(breeding_timing, sun_hours, by = c("
 # write to CSV
 write_csv(breeding_timing_with_sun_hours, here::here("data", "breeding_timing.csv"))
 
-#### ~~~ *** WITHIN YEAR DATA: GAM *** ~~~ ####
+## GAM ####
 
 # getting rain to date for each day of the water year for every year
 rainfall_daily_transposed <- as.data.frame(t(rainfall_daily))
