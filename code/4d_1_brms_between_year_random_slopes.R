@@ -23,6 +23,7 @@ rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 
 # TODO: set seed by running: mod.zi.random.slopes.year$fit@stan_args
+set.seed(42) # so the model will give us the same results each time
 
 # priors ####
 bprior.zi.random.slopes.year <- c(
