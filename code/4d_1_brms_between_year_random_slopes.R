@@ -16,7 +16,7 @@ library(ggeffects)
 
 # data ####
 # all site-year combinations, columns: num_egg_masses, BRDYEAR, Watershed, LocationID, County
-scaled_btw_year_data_random_slopes <- read_csv(here::here("data", "scaled_btw_year_random_slopes.csv"))
+scaled_btw_year_data_RS <- read_csv(here::here("data", "scaled_btw_year_RS.csv"))
 
 # to help stan run faster
 rstan_options(auto_write = TRUE)
@@ -33,7 +33,7 @@ mod.zi.random.slopes.year <- brm(
     BRDYEAR_scaled +
     (BRDYEAR_scaled || Watershed/LocationID) +
     (BRDYEAR_scaled || County),
-  data = scaled_btw_year_data_random_slopes, 
+  data = scaled_btw_year_data_RS, 
   family = zero_inflated_negbinomial(),
   prior = bprior.zi.random.slopes.year,
   chains = 3, 
@@ -123,14 +123,77 @@ pred_RS <- get_draws(pred_RS)
 write_csv(pred_RS, here::here("data", "pred_RS.csv"))
 
 # unscaling response variables for plotting
-col_means_RS <- read_csv(here::here("data", "btw_year_random_slopes_col_means.csv"))
-col_sd_RS <- read_csv(here::here("data", "btw_year_random_slopes_col_sd.csv"))
+col_means_RS <- read_csv(here::here("data", "btw_year_RS_col_means.csv"))
+col_sd_RS <- read_csv(here::here("data", "btw_year_RS_col_sd.csv"))
 
-pred_unscaled_RS <- pred_RS %>% 
-  mutate(
-    BRDYEAR_unscaled = (BRDYEAR_scaled * col_sd$BRDYEAR) + col_means$BRDYEAR,
-  )
+# pred_unscaled_RS <- pred_RS %>% 
+#   mutate(
+#     BRDYEAR_unscaled = (BRDYEAR_scaled * col_sd$BRDYEAR) + col_means$BRDYEAR,
+#   )
 
+# color palette because i want the plots to look pretty
+marin_main_color <- marin_color
+marin_background <- "khaki3"
+
+san_mateo_main_color <- sanmateo_color
+san_mateo_background <- "thistle3"
+
+# scaled_btw_year_data_RS_round <- scaled_btw_year_data_RS %>% 
+#   mutate(across(where(is.double), ~ round(., digits = 2)))
+
+sjPlot_effects <- function(term, xlab, color, ylab = "Number of egg masses") {
+  # Set color themes by county input
+  switch(color,
+         san_mateo = {
+           mc <- san_mateo_main_color
+           bg <- san_mateo_background
+           county_filter <- "San Mateo"
+         },
+         marin = {
+           mc <- marin_main_color
+           bg <- marin_background
+           county_filter <- "Marin"
+         })
+  
+  # Filter prediction data by county
+  pred_filtered <- pred_RS %>%
+    filter(County == county_filter) %>%
+    mutate(
+      BRDYEAR_unscaled = (BRDYEAR_scaled * col_sd_RS$BRDYEAR) + col_means_RS$BRDYEAR
+    )
+  
+  # Filter point data by same county and unscale the term
+  points_filtered <- scaled_btw_year_data_RS %>%
+    filter(County == county_filter) %>%
+    mutate(
+      BRDYEAR_unscaled = (BRDYEAR_scaled * col_sd_RS$BRDYEAR) + col_means_RS$BRDYEAR
+    )
+  
+  # Set x-axis limits
+  xlim <- c(round(min(pred_filtered$BRDYEAR_unscaled)), round(max(pred_filtered$BRDYEAR_unscaled)))
+  
+  # Plot
+  ggplot(pred_filtered, aes(x = BRDYEAR_unscaled, y = estimate)) +
+    geom_point(data = points_filtered, aes(x = BRDYEAR_unscaled, y = num_egg_masses), alpha = 0.65, color = bg) +
+    geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.3, fill = bg) +
+    geom_line(linewidth = 1, color = mc) +
+    labs(x = xlab, y = ylab) +
+    scale_x_continuous(limits = xlim) +
+    # scale_y_continuous(limits = c(-2, 155)) +
+    theme_bw() +
+    facet_wrap(~ Watershed)
+}
+
+# San Mateo plot
+year_plot_san_mateo <- sjPlot_effects("BRDYEAR", "Breeding year", "san_mateo", " ")
+year_plot_san_mateo
+ggsave("raw data year random slopes - san mateo.png", path = here::here('Output'))
+
+
+# Marin plot
+year_plot_marin <- sjPlot_effects("BRDYEAR", "Breeding year", "marin", " ")
+year_plot_marin
+ggsave("raw data year random slopes - marin.png", path = here::here('Output'))
 
 ## by location in watershed ####
 rs_location <- as.matrix(mod.zi.random.slopes.year) %>%
