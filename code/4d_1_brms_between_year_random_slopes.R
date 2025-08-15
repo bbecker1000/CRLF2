@@ -22,15 +22,6 @@ scaled_btw_year_data_random_slopes <- read_csv(here::here("data", "scaled_btw_ye
 rstan_options(auto_write = TRUE)
 options(mc.cores = parallel::detectCores())
 
-<<<<<<< HEAD
-# TODO: set seed by running: mod.zi.random.slopes.year$fit@stan_args
-set.seed(42) # so the model will give us the same results each time
-=======
-# seed from running mod.zi.random.slopes.year$fit@stan_args = 1045649118
-set.seed(1045649118)
-
->>>>>>> a4b68bb608f2cf4d97a457e118e9504d55b33fd3
-
 # priors ####
 bprior.zi.random.slopes.year <- c(
   prior(normal(0, 0.5), coef = BRDYEAR_scaled)
@@ -122,6 +113,24 @@ ggplot(rs_county, aes(x = value, y = fct_rev(County))) +  # reverse to show top 
   theme(legend.position = "right")
 
 ggsave("year random slopes by county.png", path = here::here('Output'), width = 6, height = 4, units = "in")
+
+### raw data vs trend for county ####
+# plot faceted by watershed; x-axis = year, y-axis = eggs?
+# based on sjPlot effects plots from 4d_brms_between_year.R
+pred_RS <- predictions(mod.zi.random.slopes.year, conf_level = 0.89, type = "prediction", ndraws = 10, re_formula = NA)
+pred_RS <- get_draws(pred_RS)
+
+write_csv(pred_RS, here::here("data", "pred_RS.csv"))
+
+# unscaling response variables for plotting
+col_means_RS <- read_csv(here::here("data", "btw_year_random_slopes_col_means.csv"))
+col_sd_RS <- read_csv(here::here("data", "btw_year_random_slopes_col_sd.csv"))
+
+pred_unscaled_RS <- pred_RS %>% 
+  mutate(
+    BRDYEAR_unscaled = (BRDYEAR_scaled * col_sd$BRDYEAR) + col_means$BRDYEAR,
+  )
+
 
 ## by location in watershed ####
 rs_location <- as.matrix(mod.zi.random.slopes.year) %>%

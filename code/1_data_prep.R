@@ -133,7 +133,6 @@ data <- unfiltered_data %>%
 write_csv(data, here::here("data", "filtered_raw_data.csv"))
 
 # ~~~ *** BETWEEN YEAR DATA *** ~~~ ####
-
 between_year_data <- data %>% 
   select(LocationID, BRDYEAR, Watershed, NumberofEggMasses, AirTemp, WaterTemp, MaxD, WaterSalinity, CoastalSite, yearly_rain, yearly_rain_lag,
          ground_sub, ground_emerg, ground_open_water, interpolated_canopy, water_flow, water_regime, DrySurvey, WaterVis, County) %>% 
@@ -214,7 +213,7 @@ between_year_data_lagged <- scaled_between_year %>%
 
 ## random slopes data ####
 # no covariates, only year 
-btw_year_data_random_slopes <- data %>% 
+btw_year_data_RS <- data %>% 
   select(LocationID, BRDYEAR, Watershed, County, NumberofEggMasses) %>% 
   group_by(LocationID, BRDYEAR) %>% 
   summarize(num_egg_masses = sum(NumberofEggMasses, na.rm = TRUE),
@@ -224,25 +223,45 @@ btw_year_data_random_slopes <- data %>%
     LocationID = as.factor(LocationID),
     County = as.factor(County)
   ) %>% 
+  select(-NumberofEggMasses) %>% 
   ungroup()
 
-btw_year_data_random_slopes$complete_case <- complete.cases(btw_year_data_random_slopes)
+btw_year_data_RS$complete_case <- complete.cases(btw_year_data_RS)
 
-nrow(btw_year_data_random_slopes)
+nrow(btw_year_data_RS)
 
-# scale data
-scaled_btw_year_data_random_slopes <- btw_year_data_random_slopes %>% 
+### scale random slope data ####
+scaled_btw_year_data_RS <- btw_year_data_RS %>% 
   filter(complete_case == TRUE) %>% 
   mutate(BRDYEAR_scaled = as.vector(scale(BRDYEAR)))
 
-nrow(scaled_btw_year_data_random_slopes)
+nrow(scaled_btw_year_data_RS)
+
+# unscale 
+col_means_RS <- btw_year_data_RS %>% 
+  filter(complete_case == TRUE) %>%
+  select(-Watershed, -LocationID, -complete_case, -County) %>% 
+  colMeans() %>% 
+  t() %>% 
+  as.data.frame()
+
+write_csv(col_means_RS, here::here("data", "btw_year_RS_col_means.csv"))
+
+col_sd_RS <- btw_year_data_RS %>% 
+  filter(complete_case == TRUE) %>%
+  select(-Watershed, -LocationID, -complete_case, -County) %>% 
+  apply(., 2, sd) %>% 
+  t() %>% 
+  as.data.frame()
+
+write_csv(col_sd_RS, here::here("data", "btw_year_RS_col_sd.csv"))
 
 
 ## write to CSV ####
 write_csv(between_year_data, here::here("data", "between_year_data.csv"))
 write_csv(scaled_between_year, here::here("data", "scaled_between_year.csv"))
 write_csv(between_year_data_lagged, here::here("data", "lag_between_year_data.csv"))
-write_csv(scaled_btw_year_data_random_slopes, here::here("data", "scaled_btw_year_random_slopes.csv"))
+write_csv(scaled_btw_year_data_RS, here::here("data", "scaled_btw_year_RS.csv"))
 
 ## (old) cover comparison ####
 # between_year_data_for_cover_comparison <- data %>% 
