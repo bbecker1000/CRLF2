@@ -74,9 +74,9 @@ ggplot(data = onset_grouped, aes(x = canopy_groups)) +
 # frailty model with grouped rainfall data
 cox_frailty_groups <- coxph(Surv(dayOfWY, next_survey, breeding_status) ~ 
                              rain_to_date_groups +
-                             # canopy_groups +
-                             water_flow +
-                             water_regime +
+                             canopy_groups +
+                             # water_flow +
+                             # water_regime +
                              frailty(LocationID), 
                            data = onset_grouped, 
                            control = coxph.control(iter.max = 50),
@@ -131,10 +131,11 @@ adjusted_curves <- adjustedsurv(
 rainfall_plot <- plot(adjusted_curves, 
      use_boot = TRUE,
      cif = TRUE,
-     xlab = "Day of Water Year",
+     xlab = "Day of Breeding Year",
      ylab = "Cumulative Incidence of Breeding",
      custom_colors = palette_blue) +
   theme_bw() +
+  theme(text = element_text(size = 15)) +
   theme(legend.position = c(0.2, 0.7) ) +
   scale_y_continuous(limits = c(0, 1)) +
   labs(color = "Rainfall Group")
@@ -156,12 +157,13 @@ canopy_plot <- plot(adjusted_curves,
      use_boot = TRUE,
      cif = TRUE,
      # custom_linetypes = c(3,3,3,3,1),
-     xlab = "Day of Water Year",
+     xlab = "Day of Breeding Year",
      ylab = "Cumulative Incidence of Breeding",
      legend.title = NULL,
      legend.position = NULL,
      custom_colors = palette_brown) +
   theme_bw() +
+  theme(text = element_text(size = 15)) +
   theme(legend.position = c(0.2, 0.7) ) +
   scale_y_continuous(limits = c(0, 1)) +
   labs(color = "Canopy Cover") 
