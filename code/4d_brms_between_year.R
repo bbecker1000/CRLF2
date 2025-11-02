@@ -234,14 +234,14 @@ sjPlot_effects <- function(term, xlab, color, ylab = "Number of egg masses") {
   
   ggplot(plot_data, aes(x = unscaled, y = predicted)) +
     # point data for appendix plot
-    geom_point(data = scaled_between_year, aes(x = .data[[term]], y = num_egg_masses), alpha = 0.5, color = bg) +
+    # geom_point(data = scaled_between_year, aes(x = .data[[term]], y = num_egg_masses), alpha = 0.5, color = bg) +
     geom_ribbon(aes(ymin = conf.low, ymax = conf.high), alpha = 0.3, fill = bg) +
     geom_line(linewidth = 1, color = mc) +
     theme_bw() +
     theme(text = element_text(size = 15))+
     labs(x = xlab, y = ylab) +
     scale_x_continuous(limits = xlim) +
-    scale_y_continuous(limits = c(-1, 200)) #55 for plots with no raw data
+    scale_y_continuous(limits = c(-1, 55)) #55 for plots with no raw data, 200 for plots with raw data
 }
 canopy_plot <- sjPlot_effects("interpolated_canopy", "Percent canopy cover", "green")
 water_plot <- sjPlot_effects("mean_percent_water", "Percent open water", "green", " ")
@@ -261,7 +261,7 @@ plot_data <- ggpredict(mod.zi.no.salinity.linear,
   mutate(unscaled = (x * col_sd$yearly_rain) + col_means$yearly_rain)
 
 interaction_plot <- ggplot(plot_data, aes(x = unscaled, y = predicted)) +
-  geom_point(data = scaled_between_year, aes(x = yearly_rain, y = num_egg_masses, color = water_regime), alpha = 0.5) +
+  # geom_point(data = scaled_between_year, aes(x = yearly_rain, y = num_egg_masses, color = water_regime), alpha = 0.5) +
   geom_ribbon(aes(ymin = conf.low, ymax = conf.high, fill = group), alpha = 0.3) +
   geom_line(linewidth = 1, aes(color = group)) +
   theme_bw() +

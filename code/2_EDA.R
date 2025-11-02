@@ -234,3 +234,8 @@ ggscatter(new_egg, x = "MaxD", y = "AvgD",
 ggplot(data = data, aes(x = obsv_total)) + geom_histogram()
 
 
+
+ggplot(data = between_year_data %>% mutate(no_eggs = if_else(num_egg_masses == 0, TRUE, FALSE)) %>% filter(BRDYEAR >= 2010), aes(x = BRDYEAR, y = num_egg_masses)) +
+  geom_point(aes(color = no_eggs)) +
+  facet_wrap(~LocationID) +
+  theme_bw()
