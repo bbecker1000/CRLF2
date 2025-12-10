@@ -114,6 +114,8 @@ ggplot(rs_county, aes(x = value, y = fct_rev(County))) +  # reverse to show top 
 
 ggsave("year random slopes by county.png", path = here::here('Output'), width = 6, height = 4, units = "in")
 
+ggsave("Appendix Fig B3.pdf", path = here::here('Full resolution images'), width = 6, height = 4, dpi=500, units = "in")
+
 ### raw data vs trend for county ####
 # plot faceted by watershed; x-axis = year, y-axis = eggs?
 # based on sjPlot effects plots from 4d_brms_between_year.R
@@ -243,6 +245,7 @@ ggplot(rs_location, aes(x = value, y = fct_rev(Site), fill=Watershed)) +  # reve
   theme(legend.position = "right")
 
 ggsave("year random slopes by site.png", path = here::here('Output'), width = 7, height = 10, units = "in")
+ggsave("Appendix Fig B1.pdf", path = here::here("Full resolution images"), dpi=500, width = 7, height = 10, units = "in")
 
 ## watershed ####
 rs_watershed <- as.matrix(mod.zi.random.slopes.year) %>%
@@ -282,3 +285,4 @@ ggplot(rs_watershed, aes(x = value, y = fct_rev(Watershed))) +  # reverse to sho
   theme(legend.position = "right")
 
 ggsave("year random slopes by watershed.png", path = here::here('Output'), width = 8.5, height = 6, units = "in")
+ggsave("Appendix Fig B2.pdf", path = here::here("Full resolution images"), dpi=500,width = 8.5, height = 6, units = "in")
