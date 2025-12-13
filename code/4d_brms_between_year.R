@@ -334,6 +334,23 @@ mcmc_intervals(posterior, point_est = "mean", prob = 0.89, prob_outer = 0.89,
 
 ### plotting random effects #### 
 #### watershed - random effects ####
+colors <- c(
+  "Audubon Canyon"     = "#6ee7c3",  
+  "Easkoot Creek"      = "#ff7f00",   
+  "Garden Club Canyon" = "#c153c1",   
+  "Kanoff Creek"       = "darkolivegreen",   
+  "Laguna Salada"      = "#e7298a",   
+  "Milagra Creek"      = "#cde15b",   
+  "Oakwood Valley"     = "#d93102",  
+  "Olema Creek"        = "#fb9a99",  
+  "Redwood Creek"      = "#1f78b4",  
+  "Rodeo Lagoon"       = "#cab2d6",  
+  "San Mateo Creek"    = "#e6ab02",  
+  "San Pedro Creek"    = "#501c87",  
+  "Tennessee Valley"   = "#7eb42d",  
+  "West Union"         = "#00747a",  
+  "Wilkins Gulch"      = "#fdbf6f"  
+)
 # intercepts <- as.data.frame(ranef(mod.zi.no.salinity.linear)$Watershed) %>% 
 #   mutate(Watershed = rownames(.))
 # colnames(intercepts) <- str_remove_all(colnames(intercepts), ".Intercept")
@@ -358,13 +375,15 @@ re <- as.matrix(mod.zi.no.salinity.linear) %>%
 
 levels(re$Watershed)
 
-ggplot(re, aes(x = value, y = Watershed)) +
+ggplot(re, aes(x = value, y = fct_rev(Watershed))) +
   geom_density_ridges(alpha = 0.7, rel_min_height = 0.01, scale = 0.8) +
   geom_point(aes(x = mean)) +
   geom_linerange(aes(xmin = lower, xmax = upper)) +
   scale_x_continuous(limits = c(-5, 5)) +
   scale_y_discrete(expand = expansion(mult = c(0.01, 0.06))) +
-  labs(x = "Distribution") +
+  scale_fill_manual(values=colors)+
+  labs(x = "Distribution",
+       y = "Watershed") +
   theme_ridges(center_axis_labels = TRUE)
 
 #### sites within watersheds - random effects ####
@@ -399,8 +418,11 @@ ggplot(re, aes(x = value, y = Site)) +
   geom_vline(aes(xintercept = 0), color = "black", linetype = 2) +
   scale_x_continuous(limits = c(-8, 8)) +
   scale_y_discrete(expand = expansion(mult = c(0.01, 0.06))) +
+  scale_fill_manual(values=colors)+
   labs(x = "Random Intercept (log scale)") +
   theme_ridges(center_axis_labels = TRUE)
+
+ggsave("Appendix Fig A2.pdf", path = here::here("Full resolution images"), dpi=500,width = 6, height = 8, units = "in")
 
 
 # JULY 3: RANDOM SLOPES with all covariates ####
