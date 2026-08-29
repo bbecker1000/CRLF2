@@ -172,9 +172,9 @@ canopy_plot <- plot(adjusted_curves,
 cowplot::plot_grid(rainfall_plot, canopy_plot, labels = "AUTO")
 
 # ungrouped rain_to_date model
-rain_model <- coxph(Surv(dayOfWY, next_survey, breeding_status) ~ 
+cox_model_frailty <- coxph(Surv(dayOfWY, next_survey, breeding_status) ~ 
                              rain_to_date +
-                             # interpolated_canopy +
+                             #] interpolated_canopy +
                              frailty(LocationID), 
                            data = complete_onset, 
                            x = TRUE)
