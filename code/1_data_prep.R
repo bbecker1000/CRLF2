@@ -460,3 +460,13 @@ within_year_with_sun_hours <- left_join(onset_of_breeding, sun_hours, by = c("Lo
 write_csv(within_year_with_sun_hours, here::here("data", "onset_of_breeding_gam.csv"))
 
 
+# summary table of sites for appendix D
+site_table <- scaled_between_year %>% 
+  group_by(Watershed, LocationID, water_flow, water_regime) %>% 
+  summarise(
+    min_year = min(BRDYEAR),
+    max_year = max(BRDYEAR),
+    total_eggs = sum(num_egg_masses)
+  )
+
+site_table
