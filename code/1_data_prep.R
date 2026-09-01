@@ -154,7 +154,7 @@ between_year_data <- data %>%
          proportion_high_water_vis = if_else(is.nan(proportion_high_water_vis), 0, proportion_high_water_vis),
          across(everything(), ~first(.))) %>% 
   select(-MaxD, -WaterSalinity, -NumberofEggMasses, -ground_sub, -ground_emerg, -ground_open_water, 
-         -DrySurvey, -WaterVis, -AirTemp, -mean_max_depth, -mean_percent_emerg) %>% 
+         -DrySurvey, -WaterVis, -AirTemp, -mean_max_depth, -max_depth, -mean_percent_emerg) %>% 
   mutate(
     # mean_salinity = if_else(CoastalSite, mean_salinity, 0),
          # max_salinity = if_else(CoastalSite, max_salinity, 0),
@@ -175,7 +175,7 @@ scaled_between_year <- between_year_data %>%
           interpolated_canopy_scaled = as.vector(scale(interpolated_canopy)),
           yearly_rain_scaled = as.vector(scale(yearly_rain)),
           # mean_max_depth_scaled = as.vector(scale(max_depth)),
-          max_depth_scaled = as.vector(scale(max_depth)),
+          # max_depth_scaled = as.vector(scale(max_depth)),
           # AirTemp_scaled = as.vector(scale(AirTemp)),
           WaterTemp_scaled = as.vector(scale(WaterTemp)),
           yearly_rain_lag_scaled = as.vector(scale(yearly_rain_lag)))
