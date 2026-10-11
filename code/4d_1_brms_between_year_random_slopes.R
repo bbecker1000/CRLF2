@@ -13,10 +13,17 @@ library(ggridges)
 library(rstan)
 library(tidybayes)
 library(ggeffects)
+library(collapse)
 
 # data ####
 # all site-year combinations, columns: num_egg_masses, BRDYEAR, Watershed, LocationID, County
-scaled_btw_year_data_RS <- read_csv(here::here("data", "scaled_btw_year_RS.csv"))
+scaled_btw_year_data_RS <- read_csv(here::here("data", "scaled_btw_year_RS.csv")) %>% 
+  mutate(Watershed = case_when(
+    Watershed == "Oakwood Valley" ~ "Marin Headlands 1",
+    Watershed == "Rodeo Lagoon" ~ "Marin Headlands 2",
+    Watershed == "Tennessee Valley" ~ "Marin Headlands 3",
+    TRUE ~ Watershed
+  ))
 
 # to help stan run faster
 rstan_options(auto_write = TRUE)
@@ -57,13 +64,13 @@ colors <- c(
   "Kanoff Creek"       = "darkolivegreen",   
   "Laguna Salada"      = "#e7298a",   
   "Milagra Creek"      = "#cde15b",   
-  "Oakwood Valley"     = "#d93102",  
+  "Marin Headlands 1"     = "#d93102",  
   "Olema Creek"        = "#fb9a99",  
   "Redwood Creek"      = "#1f78b4",  
-  "Rodeo Lagoon"       = "#cab2d6",  
+  "Marin Headlands 2"       = "#cab2d6",  
   "San Mateo Creek"    = "#e6ab02",  
   "San Pedro Creek"    = "#501c87",  
-  "Tennessee Valley"   = "#7eb42d",  
+  "Marin Headlands 3"   = "#7eb42d",  
   "West Union"         = "#00747a",  
   "Wilkins Gulch"      = "#fdbf6f"  
 )
@@ -120,6 +127,7 @@ ggsave("Appendix Fig B3.pdf", path = here::here('Full resolution images'), width
 # plot faceted by watershed; x-axis = year, y-axis = eggs?
 # based on sjPlot effects plots from 4d_brms_between_year.R
 pred_RS <- predictions(mod.zi.random.slopes.year, conf_level = 0.89, type = "prediction", ndraws = 10, re_formula = NA)
+
 pred_RS <- get_draws(pred_RS)
 
 write_csv(pred_RS, here::here("data", "pred_RS.csv"))

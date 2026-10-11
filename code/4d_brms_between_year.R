@@ -17,7 +17,13 @@ scaled_between_year <- read_csv(here::here("data", "scaled_between_year.csv")) %
          water_regime = as.factor(water_regime),
          water_flow = fct_infreq(water_flow),
          LocationID = as.factor(LocationID),
-         County = as.factor(County))
+         County = as.factor(County)) %>% 
+  mutate(Watershed = case_when(
+    Watershed == "Oakwood Valley" ~ "Marin Headlands 1",
+    Watershed == "Rodeo Lagoon" ~ "Marin Headlands 2",
+    Watershed == "Tennessee Valley" ~ "Marin Headlands 3",
+    TRUE ~ Watershed
+  ))
 
 set.seed(42) # so the model will give us the same results each time
 
@@ -74,7 +80,6 @@ mod.zi.no.salinity.linear <- brm(
   sample_prior = TRUE,
   control = list(adapt_delta = 0.99))
 
-summary(mod.zi.no.salinity.linear, prob = 0.89)
 powerscale_sensitivity(mod.zi.no.salinity.linear)
 # powerscale_plot_dens(mod.zi.no.salinity.linear)
 # plotting prior and posterior distributions
@@ -341,13 +346,13 @@ colors <- c(
   "Kanoff Creek"       = "darkolivegreen",   
   "Laguna Salada"      = "#e7298a",   
   "Milagra Creek"      = "#cde15b",   
-  "Oakwood Valley"     = "#d93102",  
+  "Marin Headlands.1"     = "#d93102",  
   "Olema Creek"        = "#fb9a99",  
   "Redwood Creek"      = "#1f78b4",  
-  "Rodeo Lagoon"       = "#cab2d6",  
+  "Marin Headlands.2"       = "#cab2d6",  
   "San Mateo Creek"    = "#e6ab02",  
   "San Pedro Creek"    = "#501c87",  
-  "Tennessee Valley"   = "#7eb42d",  
+  "Marin Headlands.3"   = "#7eb42d",  
   "West Union"         = "#00747a",  
   "Wilkins Gulch"      = "#fdbf6f"  
 )
